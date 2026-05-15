@@ -22,8 +22,9 @@ export default function SearchPage({
     <main className="page-shell">
       <PublicHeader />
       <section className="page-heading">
-        <h1>Find appointments</h1>
-        <p>Search active tenants by service, category, or locality.</p>
+        <p className="eyebrow">Search</p>
+        <h1>Find your next appointment</h1>
+        <p>Search by service, category, business, or locality and choose from active local providers.</p>
       </section>
       <SearchClient
         initialKeyword={searchParams.keyword ?? ''}

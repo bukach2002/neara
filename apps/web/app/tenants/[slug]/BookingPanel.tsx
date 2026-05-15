@@ -2,6 +2,7 @@
 
 import { FormEvent, useMemo, useState } from 'react';
 import { apiGet, apiPost, ServiceDetail, Slot, TenantDetail } from '../../lib/api';
+import { Notice } from '../../components/ui';
 
 type SlotResponse = { items: Slot[] };
 type BookingResponse = { bookingReference: string; displayTimeSnapshot: string; serviceNameSnapshot: string };
@@ -61,37 +62,50 @@ export function BookingPanel({ tenant }: { tenant: TenantDetail }) {
 
   return (
     <section className="booking-surface" aria-label="Book appointment">
+      <div className="booking-title">
+        <p className="eyebrow">Instant booking</p>
+        <h2>Reserve a slot</h2>
+      </div>
       <div className="booking-controls">
-        <label>
-          <span>Service</span>
-          <select value={serviceId} onChange={(event) => setServiceId(event.target.value)}>
-            {tenant.services.map((service: ServiceDetail) => (
-              <option value={service.id} key={service.id}>
-                {service.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          <span>Expert</span>
-          <select value={expertId} onChange={(event) => setExpertId(event.target.value)}>
-            <option value="">Any expert</option>
-            {eligibleExperts.map((expert) => (
-              <option value={expert.id} key={expert.id}>
-                {expert.displayName}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          <span>Date</span>
-          <input type="date" value={date} onChange={(event) => setDate(event.target.value)} />
-        </label>
+        <div className="booking-step">
+          <span className="step-number">1</span>
+          <label>
+            <span>Service</span>
+            <select value={serviceId} onChange={(event) => setServiceId(event.target.value)}>
+              {tenant.services.map((service: ServiceDetail) => (
+                <option value={service.id} key={service.id}>
+                  {service.name}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <div className="booking-step">
+          <span className="step-number">2</span>
+          <div className="booking-step-grid">
+            <label>
+              <span>Expert</span>
+              <select value={expertId} onChange={(event) => setExpertId(event.target.value)}>
+                <option value="">Any expert</option>
+                {eligibleExperts.map((expert) => (
+                  <option value={expert.id} key={expert.id}>
+                    {expert.displayName}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              <span>Date</span>
+              <input type="date" value={date} onChange={(event) => setDate(event.target.value)} />
+            </label>
+          </div>
+        </div>
         <button type="button" onClick={loadSlots}>
           Find slots
         </button>
       </div>
 
+      <div className="booking-step-label"><span className="step-number">3</span><span>Choose a time</span></div>
       <div className="slot-grid">
         {slots.map((slot) => (
           <button className={selectedSlot?.startsAt === slot.startsAt && selectedSlot.expert.id === slot.expert.id ? 'slot selected' : 'slot'} type="button" onClick={() => setSelectedSlot(slot)} key={`${slot.startsAt}-${slot.expert.id}`}>
@@ -101,6 +115,7 @@ export function BookingPanel({ tenant }: { tenant: TenantDetail }) {
         ))}
       </div>
 
+      <div className="booking-step-label"><span className="step-number">4</span><span>Your details</span></div>
       <form className="booking-form" onSubmit={submitBooking}>
         <input name="customerName" placeholder="Full name" required minLength={2} />
         <input name="customerPhone" placeholder="+919876543210" required pattern="^\+[1-9]\d{7,14}$" />
@@ -113,7 +128,7 @@ export function BookingPanel({ tenant }: { tenant: TenantDetail }) {
         <button type="submit">Confirm booking</button>
       </form>
 
-      {status && <p className="notice">{status}</p>}
+      {status && <Notice>{status}</Notice>}
       {booking && (
         <div className="confirmation">
           <p className="eyebrow">Booking confirmed</p>

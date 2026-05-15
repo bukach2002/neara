@@ -1,7 +1,9 @@
 'use client';
 
 import { ReactNode, useEffect, useState } from 'react';
+import { BarChart3, CalendarDays, Layers3, LogOut, ScrollText, Store } from 'lucide-react';
 import { adminGet, adminSend, AdminUser } from '../lib/adminApi';
+import { BrandMark } from '../../components/ui';
 
 export function AdminShell({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AdminUser | null>(null);
@@ -20,19 +22,19 @@ export function AdminShell({ children }: { children: ReactNode }) {
   return (
     <main className="admin-shell">
       <aside className="admin-sidebar">
-        <a className="brand-row brand-row-dark" href="/admin/platform">
-          <span className="brand-mark brand-mark-dark">N</span>
-          <span>Neara</span>
+        <a className="brand-link" href="/admin/platform">
+          <BrandMark />
         </a>
         <nav>
-          <a href="/admin/platform">Platform</a>
-          <a href="/admin/platform/bookings">Bookings</a>
-          <a href="/admin/platform/categories">Categories</a>
-          <a href="/admin/platform/logs">Logs</a>
-          <a href="/admin/tenant">Tenant admin</a>
+          <a href="/admin/platform"><BarChart3 aria-hidden="true" size={18} />Platform</a>
+          <a href="/admin/platform/bookings"><CalendarDays aria-hidden="true" size={18} />Bookings</a>
+          <a href="/admin/platform/categories"><Layers3 aria-hidden="true" size={18} />Categories</a>
+          <a href="/admin/platform/logs"><ScrollText aria-hidden="true" size={18} />Logs</a>
+          <a href="/admin/tenant"><Store aria-hidden="true" size={18} />Tenant admin</a>
         </nav>
         <p>{user ? `${user.name} - ${user.email}` : 'Not signed in'}</p>
         <button className="sidebar-button" type="button" onClick={logout}>
+          <LogOut aria-hidden="true" size={16} />
           Logout
         </button>
       </aside>

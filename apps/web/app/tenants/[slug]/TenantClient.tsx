@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { PublicHeader } from '../../components/PublicHeader';
+import { Badge, Notice, SectionHeader } from '../../components/ui';
 import { apiGet, TenantDetail } from '../../lib/api';
 import { BookingPanel } from './BookingPanel';
 
@@ -19,7 +20,7 @@ export function TenantClient({ slug }: { slug: string }) {
     return (
       <main className="page-shell">
         <PublicHeader />
-        <p className="notice error">{error}</p>
+        <Notice tone="error">{error}</Notice>
       </main>
     );
   }
@@ -28,7 +29,7 @@ export function TenantClient({ slug }: { slug: string }) {
     return (
       <main className="page-shell">
         <PublicHeader />
-        <p className="notice">Loading tenant...</p>
+        <Notice>Loading tenant...</Notice>
       </main>
     );
   }
@@ -44,31 +45,44 @@ export function TenantClient({ slug }: { slug: string }) {
           <h1>{tenant.name}</h1>
           <p>{tenant.description ?? 'Book a confirmed appointment without creating an account.'}</p>
           {location && <p className="muted">{`${location.addressLine}, ${location.locality}, ${location.city}`}</p>}
+          <div className="hero-badges">
+            <Badge tone="active">{tenant.services.length} services</Badge>
+            <Badge tone="active">{tenant.experts.length} experts</Badge>
+          </div>
         </div>
-        {tenant.logoUrl && <img src={tenant.logoUrl} alt="" />}
+        <div className="tenant-media" aria-hidden="true">
+          {tenant.logoUrl ? <img src={tenant.logoUrl} alt="" /> : <span>{tenant.name.slice(0, 1)}</span>}
+        </div>
       </section>
 
       <section className="split-layout">
         <div>
-          <h2>Services</h2>
+          <SectionHeader title="Services" />
           <div className="stack-list">
             {tenant.services.map((service) => (
-              <article className="compact-card" key={service.id}>
-                <h3>{service.name}</h3>
-                <p>{service.description ?? `${service.durationMinutes} minutes`}</p>
+              <article className="compact-card service-card" key={service.id}>
+                <div>
+                  <h3>{service.name}</h3>
+                  <p>{service.description ?? `${service.durationMinutes} minutes`}</p>
+                </div>
                 <p className="muted">
-                  {service.durationMinutes} min {service.displayPriceAmount ? `• ${service.displayPriceCurrency ?? 'INR'} ${service.displayPriceAmount}` : ''}
+                  {service.durationMinutes} min {service.displayPriceAmount ? `- ${service.displayPriceCurrency ?? 'INR'} ${service.displayPriceAmount}` : ''}
                 </p>
               </article>
             ))}
           </div>
 
-          <h2>Experts</h2>
+          <SectionHeader title="Experts" />
           <div className="stack-list">
             {tenant.experts.map((expert) => (
-              <article className="compact-card" key={expert.id}>
-                <h3>{expert.displayName}</h3>
-                <p>{expert.shortBio ?? 'Available for selected services.'}</p>
+              <article className="compact-card expert-card" key={expert.id}>
+                <div className="expert-avatar" aria-hidden="true">
+                  {expert.photoUrl ? <img src={expert.photoUrl} alt="" /> : <span>{expert.displayName.slice(0, 1)}</span>}
+                </div>
+                <div>
+                  <h3>{expert.displayName}</h3>
+                  <p>{expert.shortBio ?? 'Available for selected services.'}</p>
+                </div>
               </article>
             ))}
           </div>
