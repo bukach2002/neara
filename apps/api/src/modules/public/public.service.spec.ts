@@ -111,4 +111,34 @@ describe('PublicService search', () => {
       countryCode: 'IN',
     });
   });
+
+  it('returns place autocomplete suggestions with coordinates', async () => {
+    const { service } = setup();
+    jest.spyOn(global, 'fetch')
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          status: 'OK',
+          predictions: [
+            { description: 'Pimple Saudagar, Pune, Maharashtra, India', place_id: 'place-1' },
+            { description: 'Pimpri Colony, Pune, Maharashtra, India', place_id: 'place-2' },
+          ],
+        }),
+      } as never)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ status: 'OK', result: { geometry: { location: { lat: 18.59, lng: 73.78 } } } }),
+      } as never)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ status: 'OK', result: { geometry: { location: { lat: 18.62, lng: 73.81 } } } }),
+      } as never);
+
+    await expect(service.placeAutocomplete('Pimp')).resolves.toEqual({
+      items: [
+        { description: 'Pimple Saudagar, Pune, Maharashtra, India', placeId: 'place-1', latitude: 18.59, longitude: 73.78 },
+        { description: 'Pimpri Colony, Pune, Maharashtra, India', placeId: 'place-2', latitude: 18.62, longitude: 73.81 },
+      ],
+    });
+  });
 });
