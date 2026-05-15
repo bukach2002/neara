@@ -1,6 +1,6 @@
 'use client';
 
-import { CalendarDays, LocateFixed, Search } from 'lucide-react';
+import { CalendarDays, LocateFixed, MapPin, Search } from 'lucide-react';
 import { useState } from 'react';
 import { apiGet } from '../lib/api';
 import { LocalityAutocomplete, LocalitySuggestion } from './LocalityAutocomplete';
@@ -63,7 +63,7 @@ export function HomeSearchForm() {
   }
 
   return (
-    <form className="search-panel" action="/search">
+    <form className="search-panel home-search-panel" action="/search">
       <input type="hidden" name="searched" value="1" />
       {coords && (
         <>
@@ -89,7 +89,7 @@ export function HomeSearchForm() {
             value={locality}
             onManualChange={updateLocality}
             onSelect={selectLocality}
-            placeholder="Pimple Saudagar, Pune..."
+            placeholder="Pimple Saudagar, Pune"
           />
         </div>
       </label>
@@ -104,7 +104,7 @@ export function HomeSearchForm() {
           </button>
         )}
         <label>
-          <span>Radius</span>
+          <span><MapPin aria-hidden="true" size={14} /> Radius</span>
           <select name="radiusKm" value={radiusKm} onChange={(event) => setRadiusKm(Number(event.target.value))}>
             <option value="5">5 km</option>
             <option value="10">10 km</option>

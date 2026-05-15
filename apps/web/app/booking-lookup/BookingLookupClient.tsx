@@ -3,6 +3,7 @@
 import { FormEvent, useState } from 'react';
 import { Search } from 'lucide-react';
 import { apiGet } from '../lib/api';
+import { Notice } from '../components/ui';
 
 type BookingLookup = {
   bookingReference: string;
@@ -53,7 +54,7 @@ export function BookingLookupClient() {
         </button>
       </form>
 
-      {status && <p className="notice">{status}</p>}
+      {status && <Notice>{status}</Notice>}
       {booking && (
         <section className="confirmation">
           <p className="eyebrow">{booking.status}</p>

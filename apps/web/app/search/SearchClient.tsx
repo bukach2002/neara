@@ -1,9 +1,10 @@
 'use client';
 
-import { CalendarDays, LocateFixed, Search } from 'lucide-react';
+import { CalendarDays, Clock, LocateFixed, MapPin, Search } from 'lucide-react';
 import { FormEvent, useEffect, useState } from 'react';
 import { LocalityAutocomplete, LocalitySuggestion } from '../components/LocalityAutocomplete';
 import { apiGet, SearchTenant } from '../lib/api';
+import { Badge, Notice } from '../components/ui';
 
 type SearchResponse = { items: SearchTenant[] };
 type ReverseGeocodeResult = { locality: string; city?: string };
@@ -139,12 +140,7 @@ export function SearchClient({
             <button type="button" className="field-icon-button" onClick={useCurrentLocation} aria-label="Use my location" title="Use my location">
               <LocateFixed aria-hidden="true" size={18} />
             </button>
-            <LocalityAutocomplete
-              value={locality}
-              onManualChange={updateLocality}
-              onSelect={selectLocality}
-              placeholder="Pimple Saudagar, Pune..."
-            />
+            <LocalityAutocomplete value={locality} onManualChange={updateLocality} onSelect={selectLocality} placeholder="Pimple Saudagar, Pune" />
           </div>
         </label>
         <label>
@@ -175,26 +171,47 @@ export function SearchClient({
         </div>
       </form>
 
-      {error && <p className="notice error">{error}</p>}
-      {locationStatus && <p className="notice">{locationStatus}</p>}
-      {loading && <p className="notice">Searching...</p>}
+      {error && <Notice tone="error">{error}</Notice>}
+      {locationStatus && <Notice>{locationStatus}</Notice>}
+      {loading && <Notice>Searching...</Notice>}
 
       <div className="result-list">
         {items.map((tenant) => (
           <a className="result-card" href={`/tenants/${tenant.slug}`} key={tenant.id}>
+            <div className="result-media" aria-hidden="true">
+              {tenant.logoUrl ? <img src={tenant.logoUrl} alt="" /> : <span>{tenant.name.slice(0, 1)}</span>}
+            </div>
             <div>
               <p className="eyebrow">{tenant.category?.name ?? 'Service'}</p>
               <h2>{tenant.name}</h2>
               <p>{tenant.description ?? 'Local appointment booking available.'}</p>
-              <p className="muted">{tenant.location ? `${tenant.location.locality}, ${tenant.location.city}` : 'Location coming soon'}</p>
+              <p className="muted result-location">
+                <MapPin aria-hidden="true" size={15} />
+                {tenant.location ? `${tenant.location.locality}, ${tenant.location.city}` : 'Location coming soon'}
+              </p>
+              <div className="service-chips">
+                {tenant.services.slice(0, 3).map((service) => (
+                  <span key={service.id}>
+                    {service.name}
+                    <small>
+                      <Clock aria-hidden="true" size={12} />
+                      {service.durationMinutes} min
+                      {service.displayPriceAmount ? ` - ${service.displayPriceCurrency ?? 'INR'} ${service.displayPriceAmount}` : ''}
+                    </small>
+                  </span>
+                ))}
+              </div>
             </div>
             <div className="result-meta">
               <span>{tenant.distanceKm === null ? 'Nearby' : `${tenant.distanceKm.toFixed(1)} km`}</span>
-              <span>{tenant.availabilityState === 'availability_configured' ? 'Slots available' : 'No slots currently available'}</span>
+              <Badge tone={tenant.availabilityState === 'availability_configured' ? 'active' : 'inactive'}>
+                {tenant.availabilityState === 'availability_configured' ? 'Slots available' : 'No slots'}
+              </Badge>
+              <span className="card-action">Book</span>
             </div>
           </a>
         ))}
-        {!loading && hasSearched && items.length === 0 && <p className="notice">No matching tenants yet.</p>}
+        {!loading && hasSearched && items.length === 0 && <Notice>No matching tenants yet.</Notice>}
       </div>
     </>
   );
