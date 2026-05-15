@@ -146,6 +146,13 @@ Initial customer web routes:
 
 Client-side API calls use `NEXT_PUBLIC_API_APP_URL` when set, then `API_APP_URL`, then `http://localhost:4000`.
 
+Environment files:
+
+- Root `.env` is retained as a local monorepo convenience file.
+- API deployment/runtime variables should come from `apps/api/.env` or the deployment provider's API project settings.
+- Web deployment/runtime variables should come from `apps/web/.env` or the deployment provider's web project settings.
+- The web app should only receive browser-safe values, currently `NEXT_PUBLIC_API_APP_URL`.
+
 Initial admin web routes:
 
 - `/admin/login`
