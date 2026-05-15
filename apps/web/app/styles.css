@@ -196,6 +196,52 @@ a {
   color: var(--ink);
 }
 
+.autocomplete-field {
+  position: relative;
+  min-width: 0;
+  width: 100%;
+}
+
+.autocomplete-field input {
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  outline: 0;
+  color: var(--ink);
+  background: transparent;
+}
+
+.autocomplete-menu {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 10px);
+  left: -40px;
+  right: 0;
+  display: grid;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: white;
+  box-shadow: 0 16px 30px rgba(14, 38, 31, 0.16);
+}
+
+.autocomplete-menu button {
+  min-height: 42px;
+  justify-content: flex-start;
+  padding: 10px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: white;
+  color: var(--ink);
+  text-align: left;
+  font-weight: 800;
+}
+
+.autocomplete-menu button:last-child {
+  border-bottom: 0;
+}
+
 .field-icon-button {
   width: 30px;
   height: 30px;
@@ -286,6 +332,24 @@ a {
   background: var(--wash);
   color: var(--accent-strong);
   box-shadow: none;
+}
+
+.search-panel .autocomplete-menu button {
+  align-self: stretch;
+  min-height: 42px;
+  justify-content: flex-start;
+  padding: 10px 12px;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  background: white;
+  color: var(--ink);
+  text-align: left;
+  font-weight: 800;
+}
+
+.search-panel .autocomplete-menu button:last-child {
+  border-bottom: 0;
 }
 
 .nearby-status {

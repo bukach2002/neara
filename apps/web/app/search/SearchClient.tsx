@@ -2,6 +2,7 @@
 
 import { CalendarDays, LocateFixed, Search } from 'lucide-react';
 import { FormEvent, useEffect, useState } from 'react';
+import { LocalityAutocomplete, LocalitySuggestion } from '../components/LocalityAutocomplete';
 import { apiGet, SearchTenant } from '../lib/api';
 
 type SearchResponse = { items: SearchTenant[] };
@@ -103,6 +104,20 @@ export function SearchClient({
     setLocationStatus('');
   }
 
+  function updateLocality(value: string) {
+    setLocality(value);
+    if (coords) {
+      setCoords(null);
+      setLocationStatus('Using typed locality. Click Search to find tenants.');
+    }
+  }
+
+  function selectLocality(suggestion: LocalitySuggestion) {
+    setLocality(suggestion.description);
+    setCoords({ latitude: suggestion.latitude, longitude: suggestion.longitude });
+    setLocationStatus(`Using ${suggestion.description} within ${radiusKm} km. Click Search to find tenants.`);
+  }
+
   useEffect(() => {
     if (initialSearched) void runSearch();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -124,7 +139,12 @@ export function SearchClient({
             <button type="button" className="field-icon-button" onClick={useCurrentLocation} aria-label="Use my location" title="Use my location">
               <LocateFixed aria-hidden="true" size={18} />
             </button>
-            <input value={locality} onChange={(event) => setLocality(event.target.value)} placeholder="Bengaluru, Mumbai, Delhi..." />
+            <LocalityAutocomplete
+              value={locality}
+              onManualChange={updateLocality}
+              onSelect={selectLocality}
+              placeholder="Pimple Saudagar, Pune..."
+            />
           </div>
         </label>
         <label>

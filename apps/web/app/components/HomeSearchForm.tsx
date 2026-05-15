@@ -3,6 +3,7 @@
 import { CalendarDays, LocateFixed, Search } from 'lucide-react';
 import { useState } from 'react';
 import { apiGet } from '../lib/api';
+import { LocalityAutocomplete, LocalitySuggestion } from './LocalityAutocomplete';
 
 type ReverseGeocodeResult = { locality: string; city?: string };
 
@@ -47,6 +48,20 @@ export function HomeSearchForm() {
     setStatus('');
   }
 
+  function updateLocality(value: string) {
+    setLocality(value);
+    if (coords) {
+      setCoords(null);
+      setStatus('Using typed locality.');
+    }
+  }
+
+  function selectLocality(suggestion: LocalitySuggestion) {
+    setLocality(suggestion.description);
+    setCoords({ latitude: suggestion.latitude, longitude: suggestion.longitude });
+    setStatus(`Using ${suggestion.description} within ${radiusKm} km.`);
+  }
+
   return (
     <form className="search-panel" action="/search">
       <input type="hidden" name="searched" value="1" />
@@ -69,7 +84,13 @@ export function HomeSearchForm() {
           <button type="button" className="field-icon-button" onClick={useCurrentLocation} aria-label="Use my location" title="Use my location">
             <LocateFixed aria-hidden="true" size={18} />
           </button>
-          <input name="locality" value={locality} onChange={(event) => setLocality(event.target.value)} placeholder="Bengaluru, Mumbai, Delhi..." />
+          <LocalityAutocomplete
+            name="locality"
+            value={locality}
+            onManualChange={updateLocality}
+            onSelect={selectLocality}
+            placeholder="Pimple Saudagar, Pune..."
+          />
         </div>
       </label>
       <button type="submit">

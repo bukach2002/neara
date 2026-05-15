@@ -11,6 +11,13 @@ type RankedTenantRow = {
   textScore: number;
 };
 
+type PlaceSuggestion = {
+  description: string;
+  placeId: string;
+  latitude: number;
+  longitude: number;
+};
+
 @Injectable()
 export class PublicService {
   constructor(
@@ -201,6 +208,50 @@ export class PublicService {
     };
   }
 
+  async placeAutocomplete(input: string) {
+    const apiKey = this.config.get<string>('GOOGLE_MAPS_API_KEY', '');
+    if (!apiKey) {
+      throw new BadRequestException('Google Maps API key is not configured');
+    }
+
+    const url = new URL('https://maps.googleapis.com/maps/api/place/autocomplete/json');
+    url.searchParams.set('input', input.trim());
+    url.searchParams.set('components', 'country:in');
+    url.searchParams.set('types', 'geocode');
+    url.searchParams.set('key', apiKey);
+
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new BadRequestException('Place autocomplete request failed');
+    }
+
+    const payload = (await response.json()) as {
+      status: string;
+      error_message?: string;
+      predictions?: Array<{ description: string; place_id: string }>;
+    };
+
+    if (payload.status !== 'OK' && payload.status !== 'ZERO_RESULTS') {
+      throw new BadRequestException(payload.error_message || 'Place autocomplete failed');
+    }
+
+    const predictions = (payload.predictions ?? []).slice(0, 5);
+    const suggestions = await Promise.all(
+      predictions.map(async (prediction): Promise<PlaceSuggestion | null> => {
+        const details = await this.placeDetails(prediction.place_id, apiKey);
+        if (!details) return null;
+        return {
+          description: prediction.description,
+          placeId: prediction.place_id,
+          latitude: details.latitude,
+          longitude: details.longitude,
+        };
+      }),
+    );
+
+    return { items: suggestions.filter((suggestion): suggestion is PlaceSuggestion => Boolean(suggestion)) };
+  }
+
   async listTenantServices(slug: string) {
     const tenant = await this.getTenantBySlug(slug);
     return tenant.services.map((service) => ({
@@ -314,5 +365,23 @@ export class PublicService {
       ORDER BY "textScore" DESC, "distanceKm" ASC NULLS LAST, t."name" ASC
       LIMIT ${input.take}
     `;
+  }
+
+  private async placeDetails(placeId: string, apiKey: string) {
+    const url = new URL('https://maps.googleapis.com/maps/api/place/details/json');
+    url.searchParams.set('place_id', placeId);
+    url.searchParams.set('fields', 'geometry');
+    url.searchParams.set('key', apiKey);
+
+    const response = await fetch(url);
+    if (!response.ok) return null;
+
+    const payload = (await response.json()) as {
+      status: string;
+      result?: { geometry?: { location?: { lat: number; lng: number } } };
+    };
+    const location = payload.result?.geometry?.location;
+    if (payload.status !== 'OK' || !location) return null;
+    return { latitude: location.lat, longitude: location.lng };
   }
 }

@@ -7,6 +7,7 @@ import { LookupBookingQueryDto } from '../booking/dto/lookup-booking-query.dto';
 import { RateLimit } from '../rate-limit/rate-limit.decorator';
 import { SchedulingService } from '../scheduling/scheduling.service';
 import { AvailableSlotsQueryDto } from './dto/available-slots-query.dto';
+import { PlaceAutocompleteQueryDto } from './dto/place-autocomplete-query.dto';
 import { ReverseGeocodeQueryDto } from './dto/reverse-geocode-query.dto';
 import { SearchTenantsQueryDto } from './dto/search-tenants-query.dto';
 import { PublicService } from './public.service';
@@ -52,6 +53,13 @@ export class PublicController {
   @ApiOkResponse({ description: 'Resolve browser coordinates into a readable locality label' })
   reverseGeocode(@Query() query: ReverseGeocodeQueryDto) {
     return this.publicService.reverseGeocode(query.latitude, query.longitude);
+  }
+
+  @Get('place-autocomplete')
+  @RateLimit('PUBLIC_SEARCH')
+  @ApiOkResponse({ description: 'Suggest Indian localities and places for search' })
+  placeAutocomplete(@Query() query: PlaceAutocompleteQueryDto) {
+    return this.publicService.placeAutocomplete(query.input);
   }
 
   @Get('tenants/:slug')

@@ -14,7 +14,7 @@ export class HealthController {
   }
 
   @Get('health/dependencies')
-  @ApiOkResponse({ description: 'Database and Redis readiness probe' })
+  @ApiOkResponse({ description: 'Database, Redis, email, and storage readiness probe' })
   dependencies() {
     return this.healthService.dependencies();
   }
