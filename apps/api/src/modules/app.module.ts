@@ -13,7 +13,7 @@ import { appConfigSchema } from '../support/config.schema';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: ['.env', '../../.env'],
+      envFilePath: ['apps/api/.env', '.env', '../../.env'],
       validate: (env) => appConfigSchema.parse(env),
     }),
     PrismaModule,

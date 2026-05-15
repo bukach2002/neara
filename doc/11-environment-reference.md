@@ -1,12 +1,18 @@
 # Environment Reference
 
-See `.env.example` for copy-ready defaults.
+Use app-specific env files for deployment:
+
+- API: copy `apps/api/.env.example` to `apps/api/.env`
+- Web: copy `apps/web/.env.example` to `apps/web/.env`
+
+The root `.env.example` remains a local monorepo convenience template. Do not put server secrets in `apps/web/.env`; only variables prefixed with `NEXT_PUBLIC_` are intended for browser use.
 
 ## App
 
 - `NODE_ENV`: `development`, `test`, `staging`, or `production`
 - `WEB_APP_URL`: frontend origin used for CORS
 - `API_APP_URL`: public API origin
+- `NEXT_PUBLIC_API_APP_URL`: browser-visible API origin for the web app
 - `API_PORT`: local API port
 
 ## Data Stores
@@ -53,3 +59,10 @@ All rate limits are read from environment variables with local-development defau
 - `RATE_LIMIT_ADMIN_LOGIN_PER_WINDOW`
 - `RATE_LIMIT_PASSWORD_RESET_PER_HOUR`
 - `RATE_LIMIT_WINDOW_SECONDS`
+
+## Web App
+
+The web app currently needs only:
+
+- `NODE_ENV`
+- `NEXT_PUBLIC_API_APP_URL`

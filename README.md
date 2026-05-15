@@ -16,7 +16,11 @@ Production-ready MVP foundation for a multi-tenant appointment booking platform.
 
    ```bash
    cp .env.example .env
+   cp apps/api/.env.example apps/api/.env
+   cp apps/web/.env.example apps/web/.env
    ```
+
+   The root `.env` is a local monorepo convenience file. For deployment, use app-specific env vars: API secrets belong to `apps/api`, while the web app should only receive browser-safe values such as `NEXT_PUBLIC_API_APP_URL`.
 
 2. Start PostgreSQL with PostGIS and Redis:
 

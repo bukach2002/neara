@@ -4,15 +4,15 @@
   "version": "0.1.0",
   "scripts": {
     "dev": "nest start --watch",
-    "build": "nest build",
+    "build": "dotenv -e .env -- prisma generate && nest build",
     "start": "node dist/main.js",
     "worker": "node dist/worker.js",
     "reminders:enqueue": "node dist/reminders.js",
     "lint": "eslint \"src/**/*.ts\"",
     "test": "jest",
-    "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev",
-    "db:seed": "prisma db seed"
+    "db:generate": "dotenv -e .env -- prisma generate",
+    "db:migrate": "dotenv -e .env -- prisma migrate dev",
+    "db:seed": "dotenv -e .env -- prisma db seed"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1045.0",
@@ -40,7 +40,10 @@
     "@types/express": "^5.0.6",
     "@types/jest": "^29.5.13",
     "@types/luxon": "^3.7.1",
+    "@types/multer": "^2.0.0",
     "@types/node": "^20.16.5",
+    "@types/nodemailer": "^6.4.17",
+    "dotenv-cli": "^11.0.0",
     "jest": "^29.7.0",
     "prisma": "^5.19.1",
     "ts-jest": "^29.2.5",
