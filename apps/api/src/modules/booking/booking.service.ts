@@ -19,9 +19,24 @@ export class BookingService {
     private readonly scheduling: SchedulingService,
   ) {}
 
-  async createPublicBooking(tenantSlug: string, dto: CreatePublicBookingDto, sourceIp?: string) {
+  async createPublicBooking(
+    tenantSlug: string,
+    dto: CreatePublicBookingDto,
+    sourceIp?: string,
+    customerUser?: { id: string; email: string | null; mobileNumber: string | null },
+  ) {
     if (!dto.consentAccepted) {
       throw new BadRequestException('Consent is required to create a booking');
+    }
+    if (customerUser?.mobileNumber && dto.customerPhone.trim() !== customerUser.mobileNumber) {
+      throw new BadRequestException('Booking phone must match the signed-in mobile number');
+    }
+    if (customerUser?.email) {
+      const submittedEmail = dto.customerEmail?.trim().toLowerCase();
+      if (submittedEmail && submittedEmail !== customerUser.email) {
+        throw new BadRequestException('Booking email must match the signed-in email');
+      }
+      dto.customerEmail = submittedEmail || customerUser.email;
     }
 
     const tenant = await this.prisma.tenant.findFirst({
@@ -106,6 +121,7 @@ export class BookingService {
           const customer = await tx.customer.create({
             data: {
               tenantId: tenant.id,
+              userId: customerUser?.id,
               name: dto.customerName.trim(),
               phone: dto.customerPhone.trim(),
               email: dto.customerEmail?.trim().toLowerCase(),
@@ -178,7 +194,7 @@ export class BookingService {
         serviceName: booking.serviceNameSnapshot,
         expertName: booking.expertDisplayNameSnapshot,
         displayTime: booking.displayTimeSnapshot,
-        tenantAdminEmails: tenantAdmins.map((membership) => membership.user.email),
+        tenantAdminEmails: tenantAdmins.map((membership) => membership.user.email).filter((email): email is string => Boolean(email)),
       });
 
       return booking;

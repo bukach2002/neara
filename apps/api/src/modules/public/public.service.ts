@@ -42,8 +42,8 @@ export class PublicService {
     const radiusKm = query.radiusKm ?? 10;
     const take = query.take ?? 20;
     const keyword = query.keyword?.trim();
-    const locality = query.locality?.trim();
     const hasCoordinates = query.latitude !== undefined && query.longitude !== undefined;
+    const locality = hasCoordinates ? undefined : query.locality?.trim();
 
     const rankedRows = await this.searchTenantIds({
       keyword,
@@ -319,7 +319,8 @@ export class PublicService {
                 GREATEST(
                   similarity(t."name", ${keyword}),
                   similarity(COALESCE(t."description", ''), ${keyword}),
-                  similarity(COALESCE(s."name", ''), ${keyword})
+                  similarity(COALESCE(s."name", ''), ${keyword}),
+                  similarity(COALESCE(e."displayName", ''), ${keyword})
                 )
               )::float8`
             : Prisma.sql`0::float8`
@@ -333,6 +334,9 @@ export class PublicService {
         AND s."isActive" = true
         AND s."isPublic" = true
         AND s."archivedAt" IS NULL
+      LEFT JOIN "experts" e ON e."tenantId" = t.id
+        AND e."isActive" = true
+        AND e."archivedAt" IS NULL
       WHERE t."status" = ${TenantStatus.active}::"TenantStatus"
         AND t."archivedAt" IS NULL
         AND c."isActive" = true
@@ -345,9 +349,11 @@ export class PublicService {
                 t."name" % ${keyword}
                 OR COALESCE(t."description", '') % ${keyword}
                 OR COALESCE(s."name", '') % ${keyword}
+                OR COALESCE(e."displayName", '') % ${keyword}
                 OR t."name" ILIKE ${`%${keyword}%`}
                 OR COALESCE(t."description", '') ILIKE ${`%${keyword}%`}
                 OR COALESCE(s."name", '') ILIKE ${`%${keyword}%`}
+                OR COALESCE(e."displayName", '') ILIKE ${`%${keyword}%`}
               )`
             : Prisma.empty
         }

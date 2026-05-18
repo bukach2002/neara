@@ -16,6 +16,7 @@ function authContext(overrides: Partial<AuthContext['user']> = {}): AuthContext 
     user: {
       id: 'user-1',
       email: 'admin@neara.local',
+      mobileNumber: null,
       name: 'Admin',
       platformRole: PlatformRole.none,
       memberships: [],

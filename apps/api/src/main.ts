@@ -3,6 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './modules/app.module';
+import { HttpExceptionFilter } from './modules/observability/http-exception.filter';
+import { ObservabilityService } from './modules/observability/observability.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -20,6 +22,7 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
     }),
   );
+  app.useGlobalFilters(new HttpExceptionFilter(app.get(ObservabilityService)));
 
   const openApi = new DocumentBuilder()
     .setTitle('Neara API')

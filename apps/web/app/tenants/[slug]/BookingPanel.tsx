@@ -1,7 +1,8 @@
 'use client';
 
-import { FormEvent, useMemo, useState } from 'react';
-import { apiGet, apiPost, ServiceDetail, Slot, TenantDetail } from '../../lib/api';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { usePathname } from 'next/navigation';
+import { apiGet, apiPost, CustomerUser, ServiceDetail, Slot, TenantDetail } from '../../lib/api';
 import { Notice } from '../../components/ui';
 
 type SlotResponse = { items: Slot[] };
@@ -15,11 +16,26 @@ export function BookingPanel({ tenant }: { tenant: TenantDetail }) {
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
   const [status, setStatus] = useState('');
   const [booking, setBooking] = useState<BookingResponse | null>(null);
+  const [customer, setCustomer] = useState<CustomerUser | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
+  const pathname = usePathname();
 
   const selectedService = useMemo(() => tenant.services.find((service) => service.id === serviceId), [serviceId, tenant.services]);
   const eligibleExperts = selectedService?.expertServices.map((assignment) => assignment.expert) ?? tenant.experts;
+  const returnTo = encodeURIComponent(pathname || `/tenants/${tenant.slug}`);
+
+  useEffect(() => {
+    apiGet<{ user: CustomerUser }>('/api/public/auth/me')
+      .then((result) => setCustomer(result.user))
+      .catch(() => setCustomer(null))
+      .finally(() => setAuthChecked(true));
+  }, []);
 
   async function loadSlots() {
+    if (!customer) {
+      setStatus('Please login or register before viewing available slots.');
+      return;
+    }
     setStatus('Loading slots...');
     setSelectedSlot(null);
     setBooking(null);
@@ -40,6 +56,10 @@ export function BookingPanel({ tenant }: { tenant: TenantDetail }) {
       setStatus('Choose a slot first.');
       return;
     }
+    if (!customer) {
+      setStatus('Please login or register before confirming a booking.');
+      return;
+    }
     const form = new FormData(event.currentTarget);
     setStatus('Creating booking...');
     try {
@@ -48,8 +68,8 @@ export function BookingPanel({ tenant }: { tenant: TenantDetail }) {
         expertId: expertId || undefined,
         startsAt: selectedSlot.startsAt,
         customerName: form.get('customerName'),
-        customerPhone: form.get('customerPhone'),
-        customerEmail: form.get('customerEmail') || undefined,
+        customerPhone: customer.mobileNumber || form.get('customerPhone'),
+        customerEmail: customer.email || form.get('customerEmail') || undefined,
         customerNote: form.get('customerNote') || undefined,
         consentAccepted: form.get('consentAccepted') === 'on',
       });
@@ -65,6 +85,16 @@ export function BookingPanel({ tenant }: { tenant: TenantDetail }) {
       <div className="booking-title">
         <p className="eyebrow">Instant booking</p>
         <h2>Reserve a slot</h2>
+        {authChecked && !customer && (
+          <div className="auth-gate">
+            <p>Login or register to view free slots and book appointments.</p>
+            <div>
+              <a className="button-link" href={`/login?returnTo=${returnTo}`}>Login</a>
+              <a className="button-link secondary" href={`/register?returnTo=${returnTo}`}>Register</a>
+            </div>
+          </div>
+        )}
+        {customer && <p className="muted">Signed in as {customer.name}</p>}
       </div>
       <div className="booking-controls">
         <div className="booking-step">
@@ -117,9 +147,9 @@ export function BookingPanel({ tenant }: { tenant: TenantDetail }) {
 
       <div className="booking-step-label"><span className="step-number">4</span><span>Your details</span></div>
       <form className="booking-form" onSubmit={submitBooking}>
-        <input name="customerName" placeholder="Full name" required minLength={2} />
-        <input name="customerPhone" placeholder="+919876543210" required pattern="^\+[1-9]\d{7,14}$" />
-        <input name="customerEmail" placeholder="Email optional" type="email" />
+        <input name="customerName" placeholder="Full name" required minLength={2} defaultValue={customer?.name ?? ''} />
+        <input name="customerPhone" placeholder="+919876543210" required pattern="^\+[1-9]\d{7,14}$" defaultValue={customer?.mobileNumber ?? ''} readOnly={Boolean(customer?.mobileNumber)} />
+        <input name="customerEmail" placeholder="Email optional" type="email" defaultValue={customer?.email ?? ''} readOnly={Boolean(customer?.email)} />
         <textarea name="customerNote" placeholder="Note optional" maxLength={500} />
         <label className="check-row">
           <input name="consentAccepted" type="checkbox" required />

@@ -30,6 +30,7 @@ type BookingNotificationInput = {
 @Injectable()
 export class NotificationService {
   private queue?: Queue;
+  private queueConnection?: Redis;
 
   constructor(
     private readonly config: ConfigService,
@@ -213,10 +214,18 @@ export class NotificationService {
 
   private getQueue() {
     if (!this.queue) {
+      this.queueConnection = new Redis(this.config.get<string>('REDIS_URL', 'redis://localhost:6379'), {
+        maxRetriesPerRequest: null,
+      });
+      this.queueConnection.on('error', () => {
+        // Booking and cancellation flows must not fail or spam logs when Redis is unavailable/misconfigured.
+      });
+
       this.queue = new Queue('notifications', {
-        connection: new Redis(this.config.get<string>('REDIS_URL', 'redis://localhost:6379'), {
-          maxRetriesPerRequest: null,
-        }),
+        connection: this.queueConnection,
+      });
+      this.queue.on('error', () => {
+        // enqueueEmail records failed notification logs; keep Redis transport errors contained.
       });
     }
     return this.queue;
@@ -262,6 +271,20 @@ export class NotificationService {
       return {
         subject: 'Reset your Neara admin password',
         text: `Hi ${data.name ?? 'there'}, reset your Neara admin password here: ${data.resetUrl ?? ''}`,
+      };
+    }
+
+    if (templateKey === 'customer_login_otp') {
+      return {
+        subject: 'Your Neara login code',
+        text: `Hi ${data.name ?? 'there'}, your Neara login code is ${data.otp ?? ''}. It expires in 10 minutes.`,
+      };
+    }
+
+    if (templateKey === 'customer_password_reset_otp') {
+      return {
+        subject: 'Your Neara password reset code',
+        text: `Hi ${data.name ?? 'there'}, your Neara password reset code is ${data.otp ?? ''}. It expires in 10 minutes.`,
       };
     }
 

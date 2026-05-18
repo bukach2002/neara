@@ -4,7 +4,8 @@ export const AUTH_CONTEXT_REQUEST_KEY = 'authContext';
 
 export type AuthenticatedUser = {
   id: string;
-  email: string;
+  email: string | null;
+  mobileNumber: string | null;
   name: string;
   platformRole: PlatformRole;
   memberships: Array<{

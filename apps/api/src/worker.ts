@@ -13,6 +13,9 @@ async function bootstrap() {
   const connection = new Redis(config.get<string>('REDIS_URL', 'redis://localhost:6379'), {
     maxRetriesPerRequest: null,
   });
+  connection.on('error', (error) => {
+    console.error('Redis worker connection error', error instanceof Error ? error.message : error);
+  });
 
   const worker = new Worker(
     'notifications',
@@ -30,6 +33,10 @@ async function bootstrap() {
 
   worker.on('failed', (job, error) => {
     console.error(`Notification job ${job?.id ?? 'unknown'} failed`, error);
+  });
+
+  worker.on('error', (error) => {
+    console.error('Notification worker error', error instanceof Error ? error.message : error);
   });
 
   const shutdown = async () => {
