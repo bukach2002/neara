@@ -18,7 +18,7 @@ export const appConfigSchema = z.object({
   WEB_APP_URL: z.string().url().default('http://localhost:3000'),
   API_APP_URL: z.string().url().default('http://localhost:4000'),
   API_PORT: numberFromEnv(4000),
-  ERROR_TRACKING_WEBHOOK_URL: z.string().url().optional().default(''),
+  ERROR_TRACKING_WEBHOOK_URL: z.string().optional().default(''),
   DATABASE_URL: z.string().min(1),
   REDIS_URL: z.string().min(1).default('redis://localhost:6379'),
   RATE_LIMIT_REDIS_ENABLED: booleanFromEnv(false),

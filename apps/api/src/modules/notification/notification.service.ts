@@ -212,6 +212,26 @@ export class NotificationService {
     }
   }
 
+  async queueStats() {
+    try {
+      const queue = this.getQueue();
+      const [waiting, active, delayed, completed, failed] = await Promise.all([
+        queue.getWaitingCount(),
+        queue.getActiveCount(),
+        queue.getDelayedCount(),
+        queue.getCompletedCount(),
+        queue.getFailedCount(),
+      ]);
+      return { ok: true, waiting, active, delayed, completed, failed };
+    } catch (error) {
+      return {
+        ok: false,
+        error: error instanceof Error ? error.message : 'Notification queue is unavailable',
+      };
+    }
+  }
+
+
   private getQueue() {
     if (!this.queue) {
       this.queueConnection = new Redis(this.config.get<string>('REDIS_URL', 'redis://localhost:6379'), {

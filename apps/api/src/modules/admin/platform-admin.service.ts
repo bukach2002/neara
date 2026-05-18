@@ -369,6 +369,10 @@ export class PlatformAdminService {
     return { items, total, take: query.take ?? 50, skip: query.skip ?? 0 };
   }
 
+  notificationQueueStats() {
+    return this.notifications.queueStats();
+  }
+
   async listBookings(query: ListPlatformBookingsQueryDto) {
     const where: Prisma.BookingWhereInput = {
       tenantId: query.tenantId,

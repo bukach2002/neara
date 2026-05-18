@@ -81,6 +81,12 @@ export class PlatformAdminController {
     return this.platformAdminService.listNotificationLogs(query);
   }
 
+  @Get('queue/notifications')
+  @ApiOkResponse({ description: 'Notification queue status for platform operations' })
+  notificationQueueStats() {
+    return this.platformAdminService.notificationQueueStats();
+  }
+
   @Get('bookings')
   @ApiOkResponse({ description: 'Lookup bookings across tenants' })
   listBookings(@Query() query: ListPlatformBookingsQueryDto) {

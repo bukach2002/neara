@@ -89,6 +89,7 @@ Initial platform admin endpoints:
 - `GET /api/admin/platform/bookings`
 - `GET /api/admin/platform/bookings/:bookingId`
 - `POST /api/admin/platform/bookings/:bookingId/cancel`
+- `GET /api/admin/platform/queue/notifications`
 - `GET /api/admin/platform/audit-logs`
 - `GET /api/admin/platform/notification-logs`
 - `POST /api/admin/platform/customers/anonymize`
@@ -205,7 +206,7 @@ Rate limiting:
 - `GET /api/public/bookings/lookup`: `RATE_LIMIT_PUBLIC_BOOKING_LOOKUP_PER_MINUTE`
 - `POST /api/admin/auth/login`: `RATE_LIMIT_ADMIN_LOGIN_PER_WINDOW`
 
-Limits are read from environment variables with local defaults from config validation. The current MVP guard is process-local and can be swapped for Redis-backed distributed counters without changing controller annotations.
+Limits are read from environment variables with local defaults from config validation. By default counters are process-local for local development. Set `RATE_LIMIT_REDIS_ENABLED=true` with a valid authenticated `REDIS_URL` to use Redis-backed distributed counters without changing controller annotations.
 
 Notification foundation:
 
@@ -236,10 +237,10 @@ The reminder command scans confirmed bookings starting roughly 24 hours from the
 Backend test coverage:
 
 - Scheduling unit tests cover recurring availability, overrides, blocks, and confirmed booking removal.
-- Booking unit tests cover any-expert assignment, serializable transaction conflict handling, and rejected attempt logging.
+- Booking unit tests cover any-expert assignment, serializable transaction conflict handling, database unique-conflict mapping, and rejected attempt logging.
 - Public controller flow tests cover the anonymous discovery, slot lookup, booking creation, and booking lookup contract.
 - Public search unit tests cover database-ranked search hydration and empty result behavior.
 - Platform admin unit tests cover booking lookup filters and platform cancellation side effects.
-- Tenant admin unit tests cover Google geocoding result mapping and missing-key handling.
+- Tenant admin unit tests cover Google geocoding result mapping, missing-key handling, and tenant cancellation behavior.
 - Auth unit tests cover token hashing plus platform and tenant authorization boundaries.
 - Upload and rate-limit unit tests cover image validation and configured guard behavior.

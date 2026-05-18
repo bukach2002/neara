@@ -19,6 +19,7 @@ The root `.env.example` remains a local monorepo convenience template. Do not pu
 
 - `DATABASE_URL`: PostgreSQL connection string
 - `REDIS_URL`: Redis connection string for BullMQ and health checks
+- `RATE_LIMIT_REDIS_ENABLED`: set `true` to use Redis-backed distributed rate-limit counters; defaults to `false`
 
 ## Sessions and CSRF
 
@@ -59,6 +60,10 @@ All rate limits are read from environment variables with local-development defau
 - `RATE_LIMIT_ADMIN_LOGIN_PER_WINDOW`
 - `RATE_LIMIT_PASSWORD_RESET_PER_HOUR`
 - `RATE_LIMIT_WINDOW_SECONDS`
+
+## Observability
+
+- `ERROR_TRACKING_WEBHOOK_URL`: optional webhook endpoint for captured 5xx exception events
 
 ## Web App
 
