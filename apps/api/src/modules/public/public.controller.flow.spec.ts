@@ -16,8 +16,13 @@ describe('PublicController customer booking flow', () => {
     const schedulingService = {
       getAvailableSlots: jest.fn(),
     };
-    const controller = new PublicController(bookingService as never, publicService as never, schedulingService as never);
-    return { bookingService, controller, publicService, schedulingService };
+    const authService = {
+      requireCustomerContext: jest.fn().mockResolvedValue({
+        user: { id: 'user-1', email: 'customer@example.com', mobileNumber: '+919876543210' },
+      }),
+    };
+    const controller = new PublicController(authService as never, bookingService as never, publicService as never, schedulingService as never);
+    return { authService, bookingService, controller, publicService, schedulingService };
   }
 
   it('keeps the anonymous discovery-to-booking contract wired through controllers', async () => {
@@ -45,11 +50,15 @@ describe('PublicController customer booking flow', () => {
       name: 'Near Beauty Studio',
     });
     await expect(
-      controller.availableSlots('near-beauty-studio', {
-        serviceId: 'service-1',
-        expertId: 'expert-1',
-        date: '2026-05-15',
-      }),
+      controller.availableSlots(
+        'near-beauty-studio',
+        {
+          serviceId: 'service-1',
+          expertId: 'expert-1',
+          date: '2026-05-15',
+        },
+        { headers: {}, ip: '127.0.0.1' } as never,
+      ),
     ).resolves.toEqual({
       items: [{ startsAt: '2026-05-15T04:30:00.000Z', expert: { id: 'expert-1' } }],
     });
@@ -82,6 +91,7 @@ describe('PublicController customer booking flow', () => {
       'near-beauty-studio',
       expect.objectContaining({ customerPhone: '+919876543210', consentAccepted: true }),
       '127.0.0.1',
+      { id: 'user-1', email: 'customer@example.com', mobileNumber: '+919876543210' },
     );
   });
 });

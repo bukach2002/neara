@@ -7,6 +7,7 @@ const auth = {
   user: {
     id: 'platform-user-1',
     email: 'platform.admin@neara.local',
+    mobileNumber: null,
     name: 'Platform Admin',
     platformRole: PlatformRole.platform_admin,
     memberships: [],

@@ -54,6 +54,9 @@ export class HealthService {
       maxRetriesPerRequest: 1,
       lazyConnect: true,
     });
+    redis.on('error', () => {
+      // The health response reports Redis failures; avoid unhandled error events from ioredis.
+    });
 
     try {
       await this.withTimeout(redis.connect(), 'Redis connection timed out');

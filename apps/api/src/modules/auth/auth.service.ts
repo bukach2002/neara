@@ -1,6 +1,6 @@
 import { BadRequestException, ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PlatformRole, TenantRole, UserStatus } from '@prisma/client';
+import { PlatformRole, SessionAudience, TenantRole, UserStatus } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { createHash, randomBytes, timingSafeEqual } from 'crypto';
 import type { Request, Response } from 'express';
@@ -56,7 +56,7 @@ export class AuthService {
         data: { failedLoginAttempts: 0, lockedUntil: null },
       }),
       this.prisma.session.create({
-        data: { userId: user.id, tokenHash, expiresAt },
+        data: { userId: user.id, tokenHash, audience: SessionAudience.admin, expiresAt },
       }),
     ]);
 
@@ -86,7 +86,7 @@ export class AuthService {
     const email = dto.email.trim().toLowerCase();
     const user = await this.prisma.user.findUnique({ where: { email } });
 
-    if (user && user.status === UserStatus.active) {
+    if (user && user.email && user.status === UserStatus.active) {
       const token = this.createToken();
       await this.prisma.passwordResetToken.create({
         data: {
@@ -154,8 +154,8 @@ export class AuthService {
       this.csrf.verifyRequest(request, sessionToken);
     }
 
-    const session = await this.prisma.session.findUnique({
-      where: { tokenHash: this.hashToken(sessionToken) },
+    const session = await this.prisma.session.findFirst({
+      where: { tokenHash: this.hashToken(sessionToken), audience: SessionAudience.admin },
       include: {
         user: {
           include: {
@@ -201,6 +201,35 @@ export class AuthService {
     return context;
   }
 
+  async requireCustomerContext(request: Request): Promise<AuthContext> {
+    const sessionToken = this.getCookie(request, this.customerSessionCookieName());
+    if (!sessionToken) {
+      throw new UnauthorizedException('Customer session is required');
+    }
+
+    const session = await this.prisma.session.findFirst({
+      where: { tokenHash: this.hashToken(sessionToken), audience: SessionAudience.customer },
+      include: {
+        user: {
+          include: {
+            memberships: {
+              include: { tenant: true },
+            },
+          },
+        },
+      },
+    });
+
+    if (!session || session.expiresAt <= new Date() || session.user.status !== UserStatus.active) {
+      throw new UnauthorizedException('Customer session is invalid or expired');
+    }
+
+    return {
+      sessionId: session.id,
+      user: this.serializeUser(session.user),
+    };
+  }
+
   serializeContext(context: AuthContext) {
     return {
       sessionId: context.sessionId,
@@ -223,7 +252,8 @@ export class AuthService {
 
   private serializeUser(user: {
     id: string;
-    email: string;
+    email: string | null;
+    mobileNumber: string | null;
     name: string;
     platformRole: PlatformRole;
     memberships: Array<{
@@ -235,6 +265,7 @@ export class AuthService {
     return {
       id: user.id,
       email: user.email,
+      mobileNumber: user.mobileNumber,
       name: user.name,
       platformRole: user.platformRole,
       memberships: user.memberships.map((membership) => ({
@@ -300,6 +331,10 @@ export class AuthService {
 
   private sessionCookieName() {
     return this.config.get<string>('SESSION_COOKIE_NAME', 'neara.sid');
+  }
+
+  private customerSessionCookieName() {
+    return this.config.get<string>('CUSTOMER_SESSION_COOKIE_NAME', 'neara.customer.sid');
   }
 
   private isProduction() {

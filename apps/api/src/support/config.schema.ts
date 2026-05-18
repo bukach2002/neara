@@ -7,13 +7,21 @@ const numberFromEnv = (fallback: number) =>
     .transform((value) => (value ? Number(value) : fallback))
     .pipe(z.number().int().positive());
 
+const booleanFromEnv = (fallback: boolean) =>
+  z
+    .string()
+    .optional()
+    .transform((value) => (value === undefined ? fallback : ['1', 'true', 'yes', 'on'].includes(value.toLowerCase())));
+
 export const appConfigSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'staging', 'production']).default('development'),
   WEB_APP_URL: z.string().url().default('http://localhost:3000'),
   API_APP_URL: z.string().url().default('http://localhost:4000'),
   API_PORT: numberFromEnv(4000),
+  ERROR_TRACKING_WEBHOOK_URL: z.string().url().optional().default(''),
   DATABASE_URL: z.string().min(1),
   REDIS_URL: z.string().min(1).default('redis://localhost:6379'),
+  RATE_LIMIT_REDIS_ENABLED: booleanFromEnv(false),
   SESSION_SECRET: z.string().min(16).default('local-session-secret-change-me'),
   CSRF_SECRET: z.string().min(16).default('local-csrf-secret-change-me'),
   SESSION_COOKIE_NAME: z.string().default('neara.sid'),
@@ -36,5 +44,10 @@ export const appConfigSchema = z.object({
   RATE_LIMIT_PUBLIC_BOOKING_LOOKUP_PER_MINUTE: numberFromEnv(30),
   RATE_LIMIT_ADMIN_LOGIN_PER_WINDOW: numberFromEnv(10),
   RATE_LIMIT_PASSWORD_RESET_PER_HOUR: numberFromEnv(5),
+  RATE_LIMIT_CUSTOMER_REGISTER_PER_MINUTE: numberFromEnv(10),
+  RATE_LIMIT_CUSTOMER_LOGIN_PER_MINUTE: numberFromEnv(10),
+  RATE_LIMIT_CUSTOMER_OTP_REQUEST_PER_HOUR: numberFromEnv(5),
+  RATE_LIMIT_CUSTOMER_OTP_CONFIRM_PER_MINUTE: numberFromEnv(20),
   RATE_LIMIT_WINDOW_SECONDS: numberFromEnv(60),
+  CUSTOMER_SESSION_COOKIE_NAME: z.string().default('neara.customer.sid'),
 });

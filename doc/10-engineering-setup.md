@@ -214,6 +214,7 @@ Notification foundation:
 - Tenant booking cancellation writes a queued customer cancellation notification when email is available.
 - Queue enqueue uses BullMQ with three attempts and exponential backoff.
 - If Redis enqueue fails, the notification log is marked `failed`; booking/cancellation still succeeds.
+- Redis transport errors are handled inside the notification queue path so booking requests are not failed or flooded by async Redis connection errors.
 - `NotificationService.processEmailNotification(logId)` contains the Mailtrap send/update behavior for the worker slice.
 
 Notification worker commands:

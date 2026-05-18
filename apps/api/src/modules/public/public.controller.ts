@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Param, Post, Query, Req } from '@nestjs/common';
 import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
+import { AuthService } from '../auth/auth.service';
 import { BookingService } from '../booking/booking.service';
 import { CreatePublicBookingDto } from '../booking/dto/create-public-booking.dto';
 import { LookupBookingQueryDto } from '../booking/dto/lookup-booking-query.dto';
@@ -16,6 +17,7 @@ import { PublicService } from './public.service';
 @Controller('public')
 export class PublicController {
   constructor(
+    private readonly authService: AuthService,
     private readonly bookingService: BookingService,
     private readonly publicService: PublicService,
     private readonly schedulingService: SchedulingService,
@@ -26,9 +28,9 @@ export class PublicController {
   meta() {
     return {
       namespace: 'public',
-      authentication: 'anonymous',
+      authentication: 'anonymous discovery, customer session required for slots and bookings',
       mvpGuardrails: {
-        customerAccounts: false,
+        customerAccounts: true,
         payments: false,
         rescheduling: false,
       },
@@ -83,7 +85,8 @@ export class PublicController {
   @Get('tenants/:slug/available-slots')
   @RateLimit('PUBLIC_SLOT_LOOKUP')
   @ApiOkResponse({ description: 'List available slots for a service and optional expert' })
-  availableSlots(@Param('slug') slug: string, @Query() query: AvailableSlotsQueryDto) {
+  async availableSlots(@Param('slug') slug: string, @Query() query: AvailableSlotsQueryDto, @Req() request: Request) {
+    await this.authService.requireCustomerContext(request);
     return this.schedulingService.getAvailableSlots({
       tenantSlug: slug,
       serviceId: query.serviceId,
@@ -95,8 +98,13 @@ export class PublicController {
   @Post('tenants/:slug/bookings')
   @RateLimit('PUBLIC_BOOKING_CREATE')
   @ApiOkResponse({ description: 'Create an instantly confirmed public booking' })
-  createBooking(@Param('slug') slug: string, @Body() dto: CreatePublicBookingDto, @Req() request: Request) {
-    return this.bookingService.createPublicBooking(slug, dto, request.ip);
+  async createBooking(@Param('slug') slug: string, @Body() dto: CreatePublicBookingDto, @Req() request: Request) {
+    const context = await this.authService.requireCustomerContext(request);
+    return this.bookingService.createPublicBooking(slug, dto, request.ip, {
+      id: context.user.id,
+      email: context.user.email,
+      mobileNumber: context.user.mobileNumber,
+    });
   }
 
   @Get('bookings/lookup')

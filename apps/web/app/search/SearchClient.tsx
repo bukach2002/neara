@@ -48,12 +48,13 @@ export function SearchClient({
     setError('');
     const params = new URLSearchParams();
     if (keyword) params.set('keyword', keyword);
-    if (locality) params.set('locality', locality);
     if (category) params.set('category', category.toLowerCase());
     params.set('radiusKm', String(radiusKm));
     if (overrideCoords) {
       params.set('latitude', String(overrideCoords.latitude));
       params.set('longitude', String(overrideCoords.longitude));
+    } else if (locality) {
+      params.set('locality', locality);
     }
 
     try {

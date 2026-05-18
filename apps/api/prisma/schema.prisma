@@ -31,6 +31,22 @@ enum TenantRole {
   staff
 }
 
+enum SessionAudience {
+  admin
+  customer
+}
+
+enum OtpPurpose {
+  login
+  password_reset
+}
+
+enum OtpChannel {
+  email
+  sms
+  whatsapp
+}
+
 enum BookingStatus {
   confirmed
   cancelled
@@ -64,7 +80,8 @@ enum UploadedAssetOwnerType {
 
 model User {
   id                    String               @id @default(uuid()) @db.Uuid
-  email                 String               @unique
+  email                 String?              @unique
+  mobileNumber          String?              @unique
   name                  String
   passwordHash          String
   status                UserStatus           @default(active)
@@ -77,6 +94,8 @@ model User {
   memberships           TenantMembership[]
   sessions              Session[]
   passwordResetTokens   PasswordResetToken[]
+  otpTokens             OtpToken[]
+  customerProfiles      Customer[]
   auditLogs             AuditLog[]           @relation("AuditActor")
 
   @@map("users")
@@ -97,15 +116,36 @@ model TenantMembership {
 }
 
 model Session {
-  id        String   @id @default(uuid()) @db.Uuid
-  userId    String   @db.Uuid
-  tokenHash String   @unique
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id            String          @id @default(uuid()) @db.Uuid
+  userId        String          @db.Uuid
+  tokenHash     String          @unique
+  audience      SessionAudience @default(admin)
+  trustedDevice Boolean         @default(false)
+  expiresAt     DateTime
+  createdAt     DateTime        @default(now())
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([audience, expiresAt])
   @@map("sessions")
+}
+
+model OtpToken {
+  id          String     @id @default(uuid()) @db.Uuid
+  userId      String     @db.Uuid
+  tokenHash   String     @unique
+  purpose     OtpPurpose
+  channel     OtpChannel
+  recipient   String
+  attempts    Int        @default(0)
+  expiresAt   DateTime
+  consumedAt  DateTime?
+  createdAt   DateTime   @default(now())
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose, channel, createdAt])
+  @@index([expiresAt])
+  @@map("otp_tokens")
 }
 
 model PasswordResetToken {
@@ -296,15 +336,18 @@ model AvailabilityException {
 model Customer {
   id        String    @id @default(uuid()) @db.Uuid
   tenantId  String    @db.Uuid
+  userId    String?   @db.Uuid
   name      String
   phone     String?
   email     String?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   tenant    Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user      User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
   bookings  Booking[]
 
   @@index([tenantId, phone])
+  @@index([userId])
   @@map("customers")
 }
 
