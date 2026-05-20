@@ -2,7 +2,6 @@ import { ValidationPipe } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import type { Request, Response } from 'express';
 import { AppModule } from './modules/app.module';
 import { HttpExceptionFilter } from './modules/observability/http-exception.filter';
 import { ObservabilityService } from './modules/observability/observability.service';
@@ -20,7 +19,7 @@ function allowedCorsOrigins(config: ConfigService) {
     .filter(Boolean);
 }
 
-async function createApp() {
+async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const config = app.get(ConfigService);
   const logger = app.get(StructuredLoggerService);
@@ -59,37 +58,9 @@ async function createApp() {
     .build();
   SwaggerModule.setup('api/docs', app, SwaggerModule.createDocument(app, openApi));
 
-  return { app, config, logger };
-}
-
-async function bootstrap() {
-  const { app, config, logger } = await createApp();
   const port = config.get<number>('API_PORT', 4000);
   await app.listen(port);
   logger.event('info', 'api.started', `Neara API listening on ${port}`, { port });
 }
 
-let server: ((request: Request, response: Response) => void) | undefined;
-
-async function handler(request: Request, response: Response) {
-  let requestHandler = server;
-  if (!requestHandler) {
-    const { app } = await createApp();
-    await app.init();
-    requestHandler = app.getHttpAdapter().getInstance() as (request: Request, response: Response) => void;
-    server = requestHandler;
-  }
-
-  return requestHandler(request, response);
-}
-
-export { handler };
-export default handler;
-
-module.exports = handler;
-module.exports.default = handler;
-module.exports.handler = handler;
-
-if (require.main === module) {
-  void bootstrap();
-}
+void bootstrap();
