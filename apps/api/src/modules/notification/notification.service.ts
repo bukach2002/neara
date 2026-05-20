@@ -1,9 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Queue } from 'bullmq';
 import { Redis } from 'ioredis';
 import nodemailer from 'nodemailer';
 import { BookingStatus, NotificationChannel, NotificationStatus, Prisma } from '@prisma/client';
+import { StructuredLoggerService } from '../observability/structured-logger.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 type EmailNotificationInput = {
@@ -35,6 +36,8 @@ export class NotificationService {
   constructor(
     private readonly config: ConfigService,
     private readonly prisma: PrismaService,
+    @Optional()
+    private readonly logger?: StructuredLoggerService,
   ) {}
 
   async enqueueBookingCreated(input: BookingNotificationInput) {
@@ -149,6 +152,11 @@ export class NotificationService {
         payload: input.payload,
       },
     });
+    this.logger?.event('info', 'notification.email.queued', 'Email notification log queued', {
+      notificationLogId: log.id,
+      tenantId: log.tenantId,
+      templateKey: log.templateKey,
+    });
 
     try {
       await this.getQueue().add(
@@ -161,6 +169,11 @@ export class NotificationService {
           removeOnFail: false,
         },
       );
+      this.logger?.event('info', 'notification.email.enqueued', 'Email notification job enqueued', {
+        notificationLogId: log.id,
+        tenantId: log.tenantId,
+        templateKey: log.templateKey,
+      });
     } catch (error) {
       await this.prisma.notificationLog.update({
         where: { id: log.id },
@@ -169,6 +182,12 @@ export class NotificationService {
           errorMessage: error instanceof Error ? error.message : 'Failed to enqueue notification',
           attempts: { increment: 1 },
         },
+      });
+      this.logger?.event('error', 'notification.email.enqueue_failed', error instanceof Error ? error.message : 'Failed to enqueue notification', {
+        notificationLogId: log.id,
+        tenantId: log.tenantId,
+        templateKey: log.templateKey,
+        stack: error instanceof Error ? error.stack : undefined,
       });
     }
 
@@ -186,6 +205,11 @@ export class NotificationService {
       where: { id: log.id },
       data: { status: NotificationStatus.sending, attempts: { increment: 1 } },
     });
+    this.logger?.event('info', 'notification.email.sending', 'Email notification sending', {
+      notificationLogId: log.id,
+      tenantId: log.tenantId,
+      templateKey: log.templateKey,
+    });
 
     try {
       await this.mailer().sendMail({
@@ -199,6 +223,11 @@ export class NotificationService {
         where: { id: log.id },
         data: { status: NotificationStatus.sent, sentAt: new Date(), errorMessage: null },
       });
+      this.logger?.event('info', 'notification.email.sent', 'Email notification sent', {
+        notificationLogId: log.id,
+        tenantId: log.tenantId,
+        templateKey: log.templateKey,
+      });
     } catch (error) {
       await this.prisma.notificationLog.update({
         where: { id: log.id },
@@ -207,6 +236,12 @@ export class NotificationService {
           errorMessage: error instanceof Error ? error.message : 'Email send failed',
           nextAttemptAt: log.attempts >= 2 ? null : new Date(Date.now() + 30_000 * Math.pow(2, log.attempts)),
         },
+      });
+      this.logger?.event('error', 'notification.email.failed', error instanceof Error ? error.message : 'Email send failed', {
+        notificationLogId: log.id,
+        tenantId: log.tenantId,
+        templateKey: log.templateKey,
+        stack: error instanceof Error ? error.stack : undefined,
       });
       throw error;
     }
@@ -239,6 +274,7 @@ export class NotificationService {
       });
       this.queueConnection.on('error', () => {
         // Booking and cancellation flows must not fail or spam logs when Redis is unavailable/misconfigured.
+        this.logger?.event('warn', 'notification.queue.redis_error', 'Notification queue Redis connection error');
       });
 
       this.queue = new Queue('notifications', {
@@ -246,6 +282,7 @@ export class NotificationService {
       });
       this.queue.on('error', () => {
         // enqueueEmail records failed notification logs; keep Redis transport errors contained.
+        this.logger?.event('warn', 'notification.queue.error', 'Notification queue transport error');
       });
     }
     return this.queue;

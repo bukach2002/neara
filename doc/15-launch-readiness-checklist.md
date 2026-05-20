@@ -47,6 +47,7 @@ npm --workspace apps/api run db:seed
 
 9. Open `/api/health/dependencies` and confirm database, Redis, email, and storage readiness.
 10. Open `/api/docs` and confirm OpenAPI renders.
+11. Confirm API responses include `x-request-id` and application logs are valid JSON lines in the runtime log collector.
 
 ## Production Deployment
 
@@ -59,6 +60,7 @@ npm --workspace apps/api run db:seed
 7. Run at least one worker replica.
 8. Configure backup/restore using `doc/12-backup-restore-notes.md`.
 9. Configure `ERROR_TRACKING_WEBHOOK_URL` if using an external error collector.
+10. Set `LOG_LEVEL=info` unless a temporary debugging window needs a more verbose threshold.
 
 ## Manual End-to-End Verification
 
@@ -97,3 +99,4 @@ Security and privacy:
 2. Confirm platform admin can use booking lookup.
 3. Confirm anonymization masks PII while retaining operational booking records.
 4. Confirm rate limits return `429` after configured limits.
+5. Confirm a failed browser API request emits a sanitized `client.event.received` log with the same request ID as the API response.

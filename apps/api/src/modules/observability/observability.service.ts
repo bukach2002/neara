@@ -1,7 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { StructuredLoggerService } from './structured-logger.service';
 
 type ErrorContext = {
+  requestId?: string;
   path?: string;
   method?: string;
   statusCode?: number;
@@ -11,14 +13,15 @@ type ErrorContext = {
 
 @Injectable()
 export class ObservabilityService {
-  private readonly logger = new Logger(ObservabilityService.name);
-
-  constructor(private readonly config: ConfigService) {}
+  constructor(
+    private readonly config: ConfigService,
+    private readonly logger: StructuredLoggerService,
+  ) {}
 
   captureException(error: unknown, context: ErrorContext = {}) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     const stack = error instanceof Error ? error.stack : undefined;
-    this.logger.error({ message, ...context }, stack);
+    this.logger.event('error', 'exception.captured', message, { ...context, stack });
 
     const webhookUrl = this.config.get<string>('ERROR_TRACKING_WEBHOOK_URL', '');
     if (!webhookUrl) return;

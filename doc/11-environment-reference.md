@@ -10,6 +10,7 @@ The root `.env.example` remains a local monorepo convenience template. Do not pu
 ## App
 
 - `NODE_ENV`: `development`, `test`, `staging`, or `production`
+- `LOG_LEVEL`: structured operational log threshold, one of `debug`, `log`, `info`, `warn`, or `error`; defaults to `debug` outside staging/production and `info` in staging/production
 - `WEB_APP_URL`: frontend origin used for CORS
 - `API_APP_URL`: public API origin
 - `NEXT_PUBLIC_API_APP_URL`: browser-visible API origin for the web app
@@ -64,6 +65,7 @@ All rate limits are read from environment variables with local-development defau
 ## Observability
 
 - `ERROR_TRACKING_WEBHOOK_URL`: optional webhook endpoint for captured 5xx exception events
+- Operational logs are structured JSON written to stdout/stderr. API responses include an `x-request-id` header, and browser API helpers send the same header so frontend failures can be correlated with API request logs.
 
 ## Web App
 

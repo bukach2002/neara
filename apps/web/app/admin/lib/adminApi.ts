@@ -1,6 +1,6 @@
 'use client';
 
-import { apiBaseUrl } from '../../lib/api';
+import { apiFetch } from '../../lib/api';
 
 function csrfToken() {
   return document.cookie
@@ -11,14 +11,13 @@ function csrfToken() {
 }
 
 export async function adminGet<T>(path: string): Promise<T> {
-  const response = await fetch(`${apiBaseUrl}${path}`, { credentials: 'include' });
-  if (!response.ok) throw new Error(await response.text());
+  const response = await apiFetch(path, { credentials: 'include' });
   return response.json() as Promise<T>;
 }
 
 export async function adminSend<T>(path: string, method: 'POST' | 'PATCH' | 'DELETE', body?: unknown): Promise<T> {
   const token = csrfToken();
-  const response = await fetch(`${apiBaseUrl}${path}`, {
+  const response = await apiFetch(path, {
     method,
     credentials: 'include',
     headers: {
@@ -27,13 +26,12 @@ export async function adminSend<T>(path: string, method: 'POST' | 'PATCH' | 'DEL
     },
     body: body === undefined ? undefined : JSON.stringify(body),
   });
-  if (!response.ok) throw new Error(await response.text());
   return response.json() as Promise<T>;
 }
 
 export async function adminUpload<T>(path: string, formData: FormData): Promise<T> {
   const token = csrfToken();
-  const response = await fetch(`${apiBaseUrl}${path}`, {
+  const response = await apiFetch(path, {
     method: 'POST',
     credentials: 'include',
     headers: {
@@ -41,7 +39,6 @@ export async function adminUpload<T>(path: string, formData: FormData): Promise<
     },
     body: formData,
   });
-  if (!response.ok) throw new Error(await response.text());
   return response.json() as Promise<T>;
 }
 

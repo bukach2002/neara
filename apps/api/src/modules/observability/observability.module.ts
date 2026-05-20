@@ -1,8 +1,17 @@
-import { Module } from '@nestjs/common';
+import { Global, MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { ObservabilityController } from './observability.controller';
 import { ObservabilityService } from './observability.service';
+import { RequestLoggingMiddleware } from './request-logging.middleware';
+import { StructuredLoggerService } from './structured-logger.service';
 
+@Global()
 @Module({
-  providers: [ObservabilityService],
-  exports: [ObservabilityService],
+  controllers: [ObservabilityController],
+  providers: [ObservabilityService, RequestLoggingMiddleware, StructuredLoggerService],
+  exports: [ObservabilityService, StructuredLoggerService],
 })
-export class ObservabilityModule {}
+export class ObservabilityModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(RequestLoggingMiddleware).forRoutes('*');
+  }
+}

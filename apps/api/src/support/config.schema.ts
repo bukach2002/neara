@@ -15,6 +15,7 @@ const booleanFromEnv = (fallback: boolean) =>
 
 export const appConfigSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'staging', 'production']).default('development'),
+  LOG_LEVEL: z.enum(['debug', 'log', 'info', 'warn', 'error']).optional(),
   WEB_APP_URL: z.string().url().default('http://localhost:3000'),
   API_APP_URL: z.string().url().default('http://localhost:4000'),
   API_PORT: numberFromEnv(4000),

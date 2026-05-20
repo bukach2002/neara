@@ -62,6 +62,12 @@ Health endpoints:
 - `GET /api/health`: liveness
 - `GET /api/health/dependencies`: PostgreSQL, Redis, Mailtrap SMTP, and S3-compatible bucket readiness with bounded timeouts
 
+Operational observability:
+
+- API, worker, and reminder processes write one structured JSON log object per line to stdout/stderr.
+- Every API request receives an `x-request-id` response header. Browser API helpers also send `x-request-id`, which lets frontend failure events line up with API request and exception logs.
+- `POST /api/observability/client-events` accepts sanitized browser failure events for operational debugging. These events are not persisted and are separate from admin audit logs and notification delivery logs.
+
 Admin auth endpoints:
 
 - `POST /api/admin/auth/login`
