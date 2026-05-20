@@ -36,6 +36,10 @@ async function bootstrap() {
       callback(new Error(`CORS origin not allowed: ${origin}`));
     },
     credentials: true,
+    methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['content-type', 'x-request-id', 'authorization'],
+    exposedHeaders: ['x-request-id'],
+    optionsSuccessStatus: 204,
   });
   app.useGlobalPipes(
     new ValidationPipe({
