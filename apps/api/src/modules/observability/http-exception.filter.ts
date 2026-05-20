@@ -1,6 +1,7 @@
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import { ObservabilityService } from './observability.service';
+import { requestIdFrom } from './request-id';
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -18,6 +19,7 @@ export class HttpExceptionFilter implements ExceptionFilter {
         method: request.method,
         path: request.originalUrl,
         statusCode,
+        requestId: requestIdFrom(request),
       });
     }
 

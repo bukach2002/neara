@@ -4,7 +4,13 @@ import { RateLimitGuard } from './rate-limit.guard';
 
 describe('RateLimitGuard', () => {
   it('rejects requests after the configured limit', async () => {
-    const config = { get: jest.fn((key: string) => (key === 'RATE_LIMIT_PUBLIC_SEARCH_PER_MINUTE' ? 2 : 60)) } as unknown as ConfigService;
+    const config = {
+      get: jest.fn((key: string) => {
+        if (key === 'RATE_LIMIT_REDIS_ENABLED') return false;
+        if (key === 'RATE_LIMIT_PUBLIC_SEARCH_PER_MINUTE') return 2;
+        return 60;
+      }),
+    } as unknown as ConfigService;
     const reflector = {
       getAllAndOverride: jest.fn(() => 'PUBLIC_SEARCH'),
     } as unknown as Reflector;

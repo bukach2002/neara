@@ -5,10 +5,13 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './modules/app.module';
 import { HttpExceptionFilter } from './modules/observability/http-exception.filter';
 import { ObservabilityService } from './modules/observability/observability.service';
+import { StructuredLoggerService } from './modules/observability/structured-logger.service';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const config = app.get(ConfigService);
+  const logger = app.get(StructuredLoggerService);
+  app.useLogger(logger);
 
   app.setGlobalPrefix('api');
   app.enableCors({
@@ -32,7 +35,9 @@ async function bootstrap() {
     .build();
   SwaggerModule.setup('api/docs', app, SwaggerModule.createDocument(app, openApi));
 
-  await app.listen(config.get<number>('API_PORT', 4000));
+  const port = config.get<number>('API_PORT', 4000);
+  await app.listen(port);
+  logger.event('info', 'api.started', `Neara API listening on ${port}`, { port });
 }
 
 void bootstrap();

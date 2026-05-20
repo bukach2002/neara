@@ -31,7 +31,7 @@ function booking(status: BookingStatus = BookingStatus.confirmed) {
 
 function setup() {
   const audit = { record: jest.fn() };
-  const notifications = { enqueueBookingCancelled: jest.fn() };
+  const notifications = { enqueueBookingCancelled: jest.fn(), queueStats: jest.fn().mockResolvedValue({ ok: true, waiting: 0 }) };
   const prisma = {
     booking: {
       findMany: jest.fn(),
@@ -130,5 +130,12 @@ describe('PlatformAdminService booking operations', () => {
     expect(prisma.booking.update).not.toHaveBeenCalled();
     expect(audit.record).not.toHaveBeenCalled();
     expect(notifications.enqueueBookingCancelled).not.toHaveBeenCalled();
+  });
+
+  it('returns notification queue stats from the notification service', async () => {
+    const { notifications, service } = setup();
+
+    await expect(service.notificationQueueStats()).resolves.toEqual({ ok: true, waiting: 0 });
+    expect(notifications.queueStats).toHaveBeenCalled();
   });
 });

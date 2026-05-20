@@ -10,6 +10,7 @@ The root `.env.example` remains a local monorepo convenience template. Do not pu
 ## App
 
 - `NODE_ENV`: `development`, `test`, `staging`, or `production`
+- `LOG_LEVEL`: structured operational log threshold, one of `debug`, `log`, `info`, `warn`, or `error`; defaults to `debug` outside staging/production and `info` in staging/production
 - `WEB_APP_URL`: frontend origin used for CORS
 - `API_APP_URL`: public API origin
 - `NEXT_PUBLIC_API_APP_URL`: browser-visible API origin for the web app
@@ -19,6 +20,7 @@ The root `.env.example` remains a local monorepo convenience template. Do not pu
 
 - `DATABASE_URL`: PostgreSQL connection string
 - `REDIS_URL`: Redis connection string for BullMQ and health checks
+- `RATE_LIMIT_REDIS_ENABLED`: set `true` to use Redis-backed distributed rate-limit counters; defaults to `false`
 
 ## Sessions and CSRF
 
@@ -59,6 +61,11 @@ All rate limits are read from environment variables with local-development defau
 - `RATE_LIMIT_ADMIN_LOGIN_PER_WINDOW`
 - `RATE_LIMIT_PASSWORD_RESET_PER_HOUR`
 - `RATE_LIMIT_WINDOW_SECONDS`
+
+## Observability
+
+- `ERROR_TRACKING_WEBHOOK_URL`: optional webhook endpoint for captured 5xx exception events
+- Operational logs are structured JSON written to stdout/stderr. API responses include an `x-request-id` header, and browser API helpers send the same header so frontend failures can be correlated with API request logs.
 
 ## Web App
 

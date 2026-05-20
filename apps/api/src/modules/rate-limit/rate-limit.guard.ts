@@ -1,8 +1,9 @@
-import { CanActivate, ExecutionContext, HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { CanActivate, ExecutionContext, HttpException, HttpStatus, Injectable, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
 import { Redis } from 'ioredis';
+import { StructuredLoggerService } from '../observability/structured-logger.service';
 import { RATE_LIMIT_ENV, RATE_LIMIT_METADATA_KEY, RateLimitBucket } from './rate-limit.constants';
 
 type Counter = {
@@ -19,6 +20,8 @@ export class RateLimitGuard implements CanActivate {
   constructor(
     private readonly config: ConfigService,
     private readonly reflector: Reflector,
+    @Optional()
+    private readonly logger?: StructuredLoggerService,
   ) {}
 
   async canActivate(context: ExecutionContext) {
@@ -90,6 +93,9 @@ export class RateLimitGuard implements CanActivate {
         throw error;
       }
       this.redisDisabled = true;
+      this.logger?.event('warn', 'rate_limit.redis_fallback', error instanceof Error ? error.message : 'Rate-limit Redis failed; using in-memory counters', {
+        bucket: key.split(':')[0],
+      });
       return this.canActivateInMemory(key, limit, windowMs);
     }
   }
@@ -102,6 +108,7 @@ export class RateLimitGuard implements CanActivate {
       });
       this.redis.on('error', () => {
         this.redisDisabled = true;
+        this.logger?.event('warn', 'rate_limit.redis_error', 'Rate-limit Redis connection error');
       });
     }
     return this.redis;

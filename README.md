@@ -87,6 +87,7 @@ Implemented MVP surface includes:
 - Backup/restore: `doc/12-backup-restore-notes.md`
 - Admin guide: `doc/13-admin-user-guide.md`
 - Tenant quick start: `doc/14-tenant-admin-quick-start.md`
+- Launch checklist: `doc/15-launch-readiness-checklist.md`
 
 ## Guardrails
 
