@@ -86,6 +86,10 @@ async function handler(request: Request, response: Response) {
 export { handler };
 export default handler;
 
+module.exports = handler;
+module.exports.default = handler;
+module.exports.handler = handler;
+
 if (require.main === module) {
   void bootstrap();
 }
