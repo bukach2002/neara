@@ -17,6 +17,7 @@ export const appConfigSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'staging', 'production']).default('development'),
   LOG_LEVEL: z.enum(['debug', 'log', 'info', 'warn', 'error']).optional(),
   WEB_APP_URL: z.string().url().default('http://localhost:3000'),
+  CORS_ALLOWED_ORIGINS: z.string().optional().default(''),
   API_APP_URL: z.string().url().default('http://localhost:4000'),
   API_PORT: numberFromEnv(4000),
   ERROR_TRACKING_WEBHOOK_URL: z.string().optional().default(''),

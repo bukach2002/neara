@@ -7,6 +7,18 @@ import { HttpExceptionFilter } from './modules/observability/http-exception.filt
 import { ObservabilityService } from './modules/observability/observability.service';
 import { StructuredLoggerService } from './modules/observability/structured-logger.service';
 
+function normalizedOrigin(value: string) {
+  return value.trim().replace(/\/$/, '');
+}
+
+function allowedCorsOrigins(config: ConfigService) {
+  const webAppUrl = config.get<string>('WEB_APP_URL', 'http://localhost:3000');
+  const extraOrigins = config.get<string>('CORS_ALLOWED_ORIGINS', '');
+  return [webAppUrl, ...extraOrigins.split(',')]
+    .map((origin) => normalizedOrigin(origin))
+    .filter(Boolean);
+}
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const config = app.get(ConfigService);
@@ -14,9 +26,20 @@ async function bootstrap() {
   app.useLogger(logger);
 
   app.setGlobalPrefix('api');
+  const allowedOrigins = allowedCorsOrigins(config);
   app.enableCors({
-    origin: config.get<string>('WEB_APP_URL', 'http://localhost:3000'),
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(normalizedOrigin(origin))) {
+        callback(null, true);
+        return;
+      }
+      callback(new Error(`CORS origin not allowed: ${origin}`));
+    },
     credentials: true,
+    methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['content-type', 'x-request-id', 'authorization'],
+    exposedHeaders: ['x-request-id'],
+    optionsSuccessStatus: 204,
   });
   app.useGlobalPipes(
     new ValidationPipe({

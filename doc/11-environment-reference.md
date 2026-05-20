@@ -12,6 +12,7 @@ The root `.env.example` remains a local monorepo convenience template. Do not pu
 - `NODE_ENV`: `development`, `test`, `staging`, or `production`
 - `LOG_LEVEL`: structured operational log threshold, one of `debug`, `log`, `info`, `warn`, or `error`; defaults to `debug` outside staging/production and `info` in staging/production
 - `WEB_APP_URL`: frontend origin used for CORS
+- `CORS_ALLOWED_ORIGINS`: comma-separated frontend origins allowed by the API, in addition to `WEB_APP_URL`
 - `API_APP_URL`: public API origin
 - `NEXT_PUBLIC_API_APP_URL`: browser-visible API origin for the web app
 - `API_PORT`: local API port

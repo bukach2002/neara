@@ -17,6 +17,18 @@ function nowMs() {
   return typeof performance === 'undefined' ? Date.now() : performance.now();
 }
 
+function isCrossOriginApiRequest() {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  try {
+    return new URL(apiBaseUrl).origin !== window.location.origin;
+  } catch {
+    return true;
+  }
+}
+
 function sendClientEvent(event: {
   event: string;
   path: string;
@@ -31,20 +43,22 @@ function sendClientEvent(event: {
     return;
   }
 
-  const body = JSON.stringify(event);
-  const url = `${apiBaseUrl}/api/observability/client-events`;
-  if (navigator.sendBeacon) {
-    const blob = new Blob([body], { type: 'application/json' });
-    if (navigator.sendBeacon(url, blob)) {
-      return;
+  const body = new URLSearchParams();
+  for (const [key, value] of Object.entries(event)) {
+    if (value !== undefined && value !== null) {
+      body.set(key, String(value));
     }
+  }
+
+  const url = `${apiBaseUrl}/api/observability/client-events`;
+  if (navigator.sendBeacon && navigator.sendBeacon(url, body)) {
+    return;
   }
 
   void fetch(url, {
     method: 'POST',
     credentials: 'include',
     keepalive: true,
-    headers: { 'content-type': 'application/json' },
     body,
   }).catch(() => undefined);
 }
@@ -54,7 +68,9 @@ export async function apiFetch(path: string, options: ApiRequestOptions = {}) {
   const method = options.method ?? 'GET';
   const startedAt = nowMs();
   const headers = new Headers(options.headers);
-  headers.set(REQUEST_ID_HEADER, requestId);
+  if (!isCrossOriginApiRequest()) {
+    headers.set(REQUEST_ID_HEADER, requestId);
+  }
 
   try {
     const response = await fetch(`${apiBaseUrl}${path}`, {
