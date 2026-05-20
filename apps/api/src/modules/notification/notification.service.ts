@@ -2,7 +2,7 @@ import { Injectable, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Queue } from 'bullmq';
 import { Redis } from 'ioredis';
-import nodemailer from 'nodemailer';
+import * as nodemailer from 'nodemailer';
 import { BookingStatus, NotificationChannel, NotificationStatus, Prisma } from '@prisma/client';
 import { StructuredLoggerService } from '../observability/structured-logger.service';
 import { PrismaService } from '../prisma/prisma.service';

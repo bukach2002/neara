@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { BookingStatus, Prisma, TenantRole, TenantStatus } from '@prisma/client';
-import bcrypt from 'bcryptjs';
+import * as bcrypt from 'bcryptjs';
 import { randomBytes } from 'crypto';
 import { AuditService } from '../audit/audit.service';
 import { AuthContext } from '../auth/types';
@@ -481,10 +481,10 @@ export class PlatformAdminService {
     }
 
     const customerIds = customers.map((customer) => customer.id);
-    const names = [...new Set(customers.map((customer) => customer.name).filter(Boolean))];
-    const phones = [...new Set(customers.map((customer) => customer.phone).filter((phone): phone is string => Boolean(phone)))];
-    const emails = [...new Set(customers.map((customer) => customer.email).filter((email): email is string => Boolean(email)))];
-    const tenantIds = [...new Set(customers.map((customer) => customer.tenantId))];
+    const names = Array.from(new Set(customers.map((customer) => customer.name).filter(Boolean)));
+    const phones = Array.from(new Set(customers.map((customer) => customer.phone).filter((phone): phone is string => Boolean(phone))));
+    const emails = Array.from(new Set(customers.map((customer) => customer.email).filter((email): email is string => Boolean(email))));
+    const tenantIds = Array.from(new Set(customers.map((customer) => customer.tenantId)));
     const affectedTenantWhere = dto.tenantId ? dto.tenantId : { in: tenantIds };
 
     const result = await this.prisma.$transaction(async (tx) => {
