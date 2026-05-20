@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HeadBucketCommand, S3Client } from '@aws-sdk/client-s3';
 import { Redis } from 'ioredis';
-import nodemailer from 'nodemailer';
+import * as nodemailer from 'nodemailer';
 import { PrismaService } from '../prisma/prisma.service';
 
 const DEPENDENCY_TIMEOUT_MS = 5000;

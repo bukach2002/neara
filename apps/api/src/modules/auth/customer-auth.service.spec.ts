@@ -1,6 +1,6 @@
 import { ConflictException, UnauthorizedException } from '@nestjs/common';
 import { OtpChannel, OtpPurpose, PlatformRole, SessionAudience, UserStatus } from '@prisma/client';
-import bcrypt from 'bcryptjs';
+import * as bcrypt from 'bcryptjs';
 import { CustomerAuthService } from './customer-auth.service';
 
 function response() {
