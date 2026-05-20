@@ -71,7 +71,7 @@ async function bootstrap() {
 
 let server: ((request: Request, response: Response) => void) | undefined;
 
-export default async function handler(request: Request, response: Response) {
+async function handler(request: Request, response: Response) {
   let requestHandler = server;
   if (!requestHandler) {
     const { app } = await createApp();
@@ -83,6 +83,9 @@ export default async function handler(request: Request, response: Response) {
   return requestHandler(request, response);
 }
 
-if (process.env.VERCEL !== '1') {
+export { handler };
+export default handler;
+
+if (require.main === module) {
   void bootstrap();
 }
