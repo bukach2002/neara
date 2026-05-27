@@ -3,9 +3,9 @@
   "private": true,
   "version": "0.1.0",
   "scripts": {
-    "dev": "ts-node src/main.ts",
+    "dev": "ts-node src/app.ts",
     "build": "dotenv -e .env -- prisma generate && tsc -p tsconfig.build.json",
-    "start": "node dist/main.js",
+    "start": "node dist/app.js",
     "worker": "node dist/worker.js",
     "reminders:enqueue": "node dist/reminders.js",
     "lint": "eslint \"src/**/*.ts\"",
