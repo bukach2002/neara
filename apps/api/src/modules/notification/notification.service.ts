@@ -1,7 +1,6 @@
 import { Injectable, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Queue } from 'bullmq';
-import { Redis } from 'ioredis';
 import * as nodemailer from 'nodemailer';
 import { BookingStatus, NotificationChannel, NotificationStatus, Prisma } from '@prisma/client';
 import { StructuredLoggerService } from '../observability/structured-logger.service';
@@ -31,7 +30,6 @@ type BookingNotificationInput = {
 @Injectable()
 export class NotificationService {
   private queue?: Queue;
-  private queueConnection?: Redis;
 
   constructor(
     private readonly config: ConfigService,
@@ -269,16 +267,11 @@ export class NotificationService {
 
   private getQueue() {
     if (!this.queue) {
-      this.queueConnection = new Redis(this.config.get<string>('REDIS_URL', 'redis://localhost:6379'), {
-        maxRetriesPerRequest: null,
-      });
-      this.queueConnection.on('error', () => {
-        // Booking and cancellation flows must not fail or spam logs when Redis is unavailable/misconfigured.
-        this.logger?.event('warn', 'notification.queue.redis_error', 'Notification queue Redis connection error');
-      });
-
       this.queue = new Queue('notifications', {
-        connection: this.queueConnection,
+        connection: {
+          url: this.config.get<string>('REDIS_URL', 'redis://localhost:6379'),
+          maxRetriesPerRequest: null,
+        },
       });
       this.queue.on('error', () => {
         // enqueueEmail records failed notification logs; keep Redis transport errors contained.
