@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
+import { put } from '@vercel/blob';
 import { UploadedAssetOwnerType } from '@prisma/client';
 import { randomUUID } from 'crypto';
 import { extname } from 'path';
@@ -18,8 +18,6 @@ const ALLOWED_IMAGE_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp
 
 @Injectable()
 export class UploadService {
-  private s3?: S3Client;
-
   constructor(
     private readonly config: ConfigService,
     private readonly prisma: PrismaService,
@@ -28,24 +26,21 @@ export class UploadService {
   async uploadImage(input: UploadImageInput) {
     this.validateImage(input.file);
 
-    const key = this.objectKey(input.folder, input.ownerId, input.file);
-    await this.client().send(
-      new PutObjectCommand({
-        Bucket: this.bucket(),
-        Key: key,
-        Body: input.file.buffer,
-        ContentType: input.file.mimetype,
-      }),
-    );
+    const pathname = this.objectKey(input.folder, input.ownerId, input.file);
+    const token = this.config.get<string>('BLOB_READ_WRITE_TOKEN', '');
 
-    const url = this.publicUrl(key);
+    const blob = await put(pathname, input.file.buffer, {
+      access: 'public',
+      ...(token ? { token } : {}),
+    });
+
     const asset = await this.prisma.uploadedAsset.create({
       data: {
         tenantId: input.tenantId,
         ownerType: input.ownerType,
         ownerId: input.ownerId,
-        key,
-        url,
+        key: pathname,
+        url: blob.url,
         mimeType: input.file.mimetype,
         sizeBytes: input.file.size,
       },
@@ -63,26 +58,10 @@ export class UploadService {
       throw new BadRequestException('Only JPEG, PNG, WebP, or GIF images are allowed');
     }
 
-    const maxBytes = this.config.get<number>('UPLOAD_MAX_IMAGE_BYTES', 5 * 1024 * 1024);
+    const maxBytes = this.config.get<number>('UPLOAD_MAX_IMAGE_BYTES', 4 * 1024 * 1024);
     if (file.size > maxBytes) {
       throw new BadRequestException(`Image must be ${maxBytes} bytes or smaller`);
     }
-  }
-
-  private client() {
-    if (!this.s3) {
-      const endpoint = this.config.get<string>('S3_ENDPOINT');
-      this.s3 = new S3Client({
-        endpoint,
-        region: this.config.get<string>('S3_REGION', 'ap-south-1'),
-        forcePathStyle: Boolean(endpoint),
-        credentials: {
-          accessKeyId: this.config.get<string>('S3_ACCESS_KEY_ID', ''),
-          secretAccessKey: this.config.get<string>('S3_SECRET_ACCESS_KEY', ''),
-        },
-      });
-    }
-    return this.s3;
   }
 
   private objectKey(folder: string, ownerId: string, file: Express.Multer.File) {
@@ -108,17 +87,5 @@ export class UploadService {
       default:
         return '';
     }
-  }
-
-  private bucket() {
-    return this.config.get<string>('S3_BUCKET', 'neara-local');
-  }
-
-  private publicUrl(key: string) {
-    const baseUrl = this.config.get<string>('S3_PUBLIC_BASE_URL');
-    if (baseUrl) {
-      return `${baseUrl.replace(/\/$/, '')}/${key}`;
-    }
-    return `s3://${this.bucket()}/${key}`;
   }
 }

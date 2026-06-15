@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { HeadBucketCommand, S3Client } from '@aws-sdk/client-s3';
+import { list } from '@vercel/blob';
 import { Redis } from 'ioredis';
 import * as nodemailer from 'nodemailer';
 import { PrismaService } from '../prisma/prisma.service';
@@ -97,31 +97,16 @@ export class HealthService {
   }
 
   private async checkStorage() {
-    const bucket = this.config.get<string>('S3_BUCKET', '');
-    const accessKeyId = this.config.get<string>('S3_ACCESS_KEY_ID', '');
-    const secretAccessKey = this.config.get<string>('S3_SECRET_ACCESS_KEY', '');
-    if (!bucket || !accessKeyId || !secretAccessKey) {
-      return { ok: false, configured: false, error: 'S3 storage credentials are not configured' };
+    const token = this.config.get<string>('BLOB_READ_WRITE_TOKEN', '');
+    if (!token) {
+      return { ok: false, configured: false, error: 'Vercel Blob token is not configured' };
     }
 
-    const endpoint = this.config.get<string>('S3_ENDPOINT');
-    const client = new S3Client({
-      endpoint,
-      region: this.config.get<string>('S3_REGION', 'ap-south-1'),
-      forcePathStyle: Boolean(endpoint),
-      credentials: {
-        accessKeyId,
-        secretAccessKey,
-      },
-    });
-
     try {
-      await this.withTimeout(client.send(new HeadBucketCommand({ Bucket: bucket })), 'S3 bucket health check timed out');
-      return { ok: true, configured: true, bucket };
+      await this.withTimeout(list({ token, limit: 1 }), 'Vercel Blob health check timed out');
+      return { ok: true, configured: true };
     } catch (error) {
-      return { ok: false, configured: true, bucket, error: this.errorMessage(error) };
-    } finally {
-      client.destroy();
+      return { ok: false, configured: true, error: this.errorMessage(error) };
     }
   }
 

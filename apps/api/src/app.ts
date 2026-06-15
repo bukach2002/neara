@@ -62,12 +62,19 @@ import { ReverseGeocodeQueryDto } from './modules/public/dto/reverse-geocode-que
 import { SearchTenantsQueryDto } from './modules/public/dto/search-tenants-query.dto';
 import { PublicService } from './modules/public/public.service';
 import { RATE_LIMIT_ENV, RateLimitBucket } from './modules/rate-limit/rate-limit.constants';
+import { Redis } from '@upstash/redis';
+import { Ratelimit } from '@upstash/ratelimit';
 import { SchedulingService } from './modules/scheduling/scheduling.service';
 import { UploadService } from './modules/upload/upload.service';
+import { serve } from 'inngest/express';
+import { inngest } from './modules/notification/inngest.client';
+import * as inngestFunctions from './inngest/functions';
 import { appConfigSchema } from './support/config.schema';
 
-dotenv.config({ path: resolve(__dirname, '../../../.env') });
-dotenv.config({ path: resolve(__dirname, '../.env') });
+if (process.env.VERCEL !== '1') {
+  dotenv.config({ path: resolve(__dirname, '../../../.env') });
+  dotenv.config({ path: resolve(__dirname, '../.env') });
+}
 
 type RouteHandler = (request: Request, response: Response) => Promise<unknown> | unknown;
 
@@ -139,46 +146,101 @@ function clientKey(request: Request) {
   return forwardedFor || request.ip || request.socket.remoteAddress || 'unknown';
 }
 
+function defaultRateLimit(bucket: RateLimitBucket) {
+  switch (bucket) {
+    case 'PUBLIC_SEARCH':
+      return 100;
+    case 'PUBLIC_SLOT_LOOKUP':
+      return 120;
+    case 'PUBLIC_BOOKING_CREATE':
+      return 20;
+    case 'PUBLIC_BOOKING_LOOKUP':
+      return 30;
+    case 'ADMIN_LOGIN':
+      return 10;
+    case 'PASSWORD_RESET':
+      return 5;
+    case 'CUSTOMER_REGISTER':
+      return 10;
+    case 'CUSTOMER_LOGIN':
+      return 10;
+    case 'CUSTOMER_OTP_REQUEST':
+      return 5;
+    case 'CUSTOMER_OTP_CONFIRM':
+      return 20;
+  }
+}
+
+function windowSecondsFor(config: ConfigService, bucket: RateLimitBucket) {
+  if (bucket === 'PASSWORD_RESET' || bucket === 'CUSTOMER_OTP_REQUEST') {
+    return 60 * 60;
+  }
+  return config.get<number>('RATE_LIMIT_WINDOW_SECONDS', 60);
+}
+
 function createRateLimiter(config: ConfigService, logger: StructuredLoggerService) {
+  const upstashUrl = config.get<string>('UPSTASH_REDIS_REST_URL', '');
+  const upstashToken = config.get<string>('UPSTASH_REDIS_REST_TOKEN', '');
+
+  const useUpstash = upstashUrl.length > 0 && upstashToken.length > 0;
+
+  if (!useUpstash) {
+    logger.event('info', 'rate_limit.mode', 'Using in-memory rate limiter (no Upstash configured)');
+    return createInMemoryRateLimiter(config, logger);
+  }
+
+  logger.event('info', 'rate_limit.mode', 'Using Upstash rate limiter');
+
+  const redis = new Redis({ url: upstashUrl, token: upstashToken });
+  const ratelimits = new Map<RateLimitBucket, Ratelimit>();
+
+  return (bucket: RateLimitBucket) => async (request: Request, _response: Response, next: NextFunction) => {
+    try {
+      let rl = ratelimits.get(bucket);
+      if (!rl) {
+        const limit = config.get<number>(RATE_LIMIT_ENV[bucket], defaultRateLimit(bucket));
+        const windowSeconds = windowSecondsFor(config, bucket);
+        rl = new Ratelimit({
+          redis,
+          limiter: Ratelimit.slidingWindow(limit, `${windowSeconds} s`),
+          prefix: `neara:${bucket}`,
+        });
+        ratelimits.set(bucket, rl);
+      }
+
+      const identifier = clientKey(request);
+      const { success, reset } = await rl.limit(identifier);
+
+      if (!success) {
+        throw new HttpException(
+          {
+            message: 'Rate limit exceeded',
+            resetAt: new Date(reset).toISOString(),
+          },
+          429,
+        );
+      }
+
+      next();
+    } catch (error) {
+      if (error instanceof HttpException) {
+        next(error);
+        return;
+      }
+      logger.event('warn', 'rate_limit.rejected', error instanceof Error ? error.message : 'Rate limit rejected');
+      next(error);
+    }
+  };
+}
+
+function createInMemoryRateLimiter(config: ConfigService, logger: StructuredLoggerService) {
   const counters = new Map<string, Counter>();
-
-  function defaultLimit(bucket: RateLimitBucket) {
-    switch (bucket) {
-      case 'PUBLIC_SEARCH':
-        return 100;
-      case 'PUBLIC_SLOT_LOOKUP':
-        return 120;
-      case 'PUBLIC_BOOKING_CREATE':
-        return 20;
-      case 'PUBLIC_BOOKING_LOOKUP':
-        return 30;
-      case 'ADMIN_LOGIN':
-        return 10;
-      case 'PASSWORD_RESET':
-        return 5;
-      case 'CUSTOMER_REGISTER':
-        return 10;
-      case 'CUSTOMER_LOGIN':
-        return 10;
-      case 'CUSTOMER_OTP_REQUEST':
-        return 5;
-      case 'CUSTOMER_OTP_CONFIRM':
-        return 20;
-    }
-  }
-
-  function windowSecondsFor(bucket: RateLimitBucket) {
-    if (bucket === 'PASSWORD_RESET' || bucket === 'CUSTOMER_OTP_REQUEST') {
-      return 60 * 60;
-    }
-    return config.get<number>('RATE_LIMIT_WINDOW_SECONDS', 60);
-  }
 
   return (bucket: RateLimitBucket) => (request: Request, _response: Response, next: NextFunction) => {
     try {
       const key = `${bucket}:${clientKey(request)}`;
-      const limit = config.get<number>(RATE_LIMIT_ENV[bucket], defaultLimit(bucket));
-      const windowMs = windowSecondsFor(bucket) * 1000;
+      const limit = config.get<number>(RATE_LIMIT_ENV[bucket], defaultRateLimit(bucket));
+      const windowMs = windowSecondsFor(config, bucket) * 1000;
       const now = Date.now();
       const counter = counters.get(key);
 
@@ -208,6 +270,7 @@ function createRateLimiter(config: ConfigService, logger: StructuredLoggerServic
   };
 }
 
+function buildApp(): express.Express {
 const parsedConfig = appConfigSchema.parse(process.env);
 const config = new ConfigService(parsedConfig);
 const logger = new StructuredLoggerService(config);
@@ -229,6 +292,14 @@ const upload = multer({ storage: multer.memoryStorage() });
 const uploadFile = upload.single('file') as unknown as RequestHandler;
 const limit = createRateLimiter(config, logger);
 const app = express();
+
+app.all(
+  '/api/inngest',
+  serve({
+    client: inngest,
+    functions: Object.values(inngestFunctions),
+  }),
+);
 
 app.disable('x-powered-by');
 app.set('trust proxy', 1);
@@ -431,6 +502,35 @@ const port = config.get<number>('API_PORT', 4000);
 if (require.main === module) {
   app.listen(port, () => {
     logger.event('info', 'api.started', `Neara Express API listening on ${port}`, { port });
+  });
+}
+
+return app;
+}
+
+let app: express.Express;
+try {
+  app = buildApp();
+} catch (error) {
+  const message = error instanceof Error ? error.message : 'Unknown initialization error';
+  if (typeof process !== 'undefined' && process.stderr) {
+    process.stderr.write(
+      JSON.stringify({
+        timestamp: new Date().toISOString(),
+        level: 'fatal',
+        event: 'app.init.failed',
+        message: `Failed to initialize Neara API: ${message}`,
+        ...(error instanceof Error ? { stack: error.stack } : {}),
+      }) + '\n',
+    );
+  }
+  app = express();
+  app.disable('x-powered-by');
+  app.use((_req, res) => {
+    res.status(503).json({
+      error: 'Service temporarily unavailable',
+      ...(process.env.NODE_ENV === 'production' ? {} : { message }),
+    });
   });
 }
 

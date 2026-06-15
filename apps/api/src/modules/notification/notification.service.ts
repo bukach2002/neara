@@ -1,7 +1,7 @@
 import { Injectable, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Queue } from 'bullmq';
 import * as nodemailer from 'nodemailer';
+import { inngest } from './inngest.client';
 import { BookingStatus, NotificationChannel, NotificationStatus, Prisma } from '@prisma/client';
 import { StructuredLoggerService } from '../observability/structured-logger.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -29,8 +29,6 @@ type BookingNotificationInput = {
 
 @Injectable()
 export class NotificationService {
-  private queue?: Queue;
-
   constructor(
     private readonly config: ConfigService,
     private readonly prisma: PrismaService,
@@ -157,17 +155,8 @@ export class NotificationService {
     });
 
     try {
-      await this.getQueue().add(
-        'send-email',
-        { notificationLogId: log.id },
-        {
-          attempts: 3,
-          backoff: { type: 'exponential', delay: 30_000 },
-          removeOnComplete: true,
-          removeOnFail: false,
-        },
-      );
-      this.logger?.event('info', 'notification.email.enqueued', 'Email notification job enqueued', {
+      await this.sendInngestEvent(log.id);
+      this.logger?.event('info', 'notification.email.enqueued', 'Email notification enqueued via Inngest', {
         notificationLogId: log.id,
         tenantId: log.tenantId,
         templateKey: log.templateKey,
@@ -190,6 +179,13 @@ export class NotificationService {
     }
 
     return log;
+  }
+
+  async sendInngestEvent(notificationLogId: string) {
+    await inngest.send({
+      name: 'notification/send-email',
+      data: { notificationLogId },
+    });
   }
 
   async processEmailNotification(notificationLogId: string) {
@@ -246,39 +242,11 @@ export class NotificationService {
   }
 
   async queueStats() {
-    try {
-      const queue = this.getQueue();
-      const [waiting, active, delayed, completed, failed] = await Promise.all([
-        queue.getWaitingCount(),
-        queue.getActiveCount(),
-        queue.getDelayedCount(),
-        queue.getCompletedCount(),
-        queue.getFailedCount(),
-      ]);
-      return { ok: true, waiting, active, delayed, completed, failed };
-    } catch (error) {
-      return {
-        ok: false,
-        error: error instanceof Error ? error.message : 'Notification queue is unavailable',
-      };
-    }
-  }
-
-
-  private getQueue() {
-    if (!this.queue) {
-      this.queue = new Queue('notifications', {
-        connection: {
-          url: this.config.get<string>('REDIS_URL', 'redis://localhost:6379'),
-          maxRetriesPerRequest: null,
-        },
-      });
-      this.queue.on('error', () => {
-        // enqueueEmail records failed notification logs; keep Redis transport errors contained.
-        this.logger?.event('warn', 'notification.queue.error', 'Notification queue transport error');
-      });
-    }
-    return this.queue;
+    return {
+      ok: true,
+      provider: 'inngest',
+      message: 'Notifications are processed via Inngest. Visit the Inngest dashboard for queue details.',
+    };
   }
 
   private mailer() {
