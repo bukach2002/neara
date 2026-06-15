@@ -17,9 +17,7 @@ describe('HealthService dependencies', () => {
       REDIS_URL: 'redis://localhost:6379',
       MAILTRAP_USERNAME: '',
       MAILTRAP_PASSWORD: '',
-      S3_BUCKET: '',
-      S3_ACCESS_KEY_ID: '',
-      S3_SECRET_ACCESS_KEY: '',
+      BLOB_READ_WRITE_TOKEN: '',
     });
     jest.spyOn(service as never, 'checkRedis').mockResolvedValue({ ok: true } as never);
 
@@ -29,7 +27,7 @@ describe('HealthService dependencies', () => {
     expect(result.database).toEqual({ ok: true });
     expect(result.redis).toEqual({ ok: true });
     expect(result.email).toEqual({ ok: false, configured: false, error: 'Mailtrap credentials are not configured' });
-    expect(result.storage).toEqual({ ok: false, configured: false, error: 'S3 storage credentials are not configured' });
+    expect(result.storage).toEqual({ ok: false, configured: false, error: 'Vercel Blob token is not configured' });
   });
 
   it('aggregates all dependency probes into a healthy response', async () => {
@@ -37,7 +35,7 @@ describe('HealthService dependencies', () => {
     jest.spyOn(service as never, 'checkDatabase').mockResolvedValue({ ok: true } as never);
     jest.spyOn(service as never, 'checkRedis').mockResolvedValue({ ok: true } as never);
     jest.spyOn(service as never, 'checkEmail').mockResolvedValue({ ok: true, configured: true } as never);
-    jest.spyOn(service as never, 'checkStorage').mockResolvedValue({ ok: true, configured: true, bucket: 'neara-s3' } as never);
+    jest.spyOn(service as never, 'checkStorage').mockResolvedValue({ ok: true, configured: true } as never);
 
     await expect(service.dependencies()).resolves.toEqual(
       expect.objectContaining({
@@ -45,7 +43,7 @@ describe('HealthService dependencies', () => {
         database: { ok: true },
         redis: { ok: true },
         email: { ok: true, configured: true },
-        storage: { ok: true, configured: true, bucket: 'neara-s3' },
+        storage: { ok: true, configured: true },
         timestamp: expect.any(String),
       }),
     );

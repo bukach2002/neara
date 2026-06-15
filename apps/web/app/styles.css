@@ -221,20 +221,18 @@ img {
 .bottom-nav {
   position: fixed;
   z-index: 50;
-  left: clamp(10px, 2vw, 18px);
-  right: clamp(10px, 2vw, 18px);
-  bottom: 12px;
-  max-width: 620px;
-  margin: 0 auto;
+  left: 0;
+  right: 0;
+  bottom: 0;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 4px;
   padding: 9px;
-  border: 1px solid var(--line);
-  border-radius: 18px;
+  padding-bottom: calc(9px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.95);
-  box-shadow: 0 16px 40px rgba(16, 24, 40, 0.18);
   backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
 }
 
 .bottom-nav a {
