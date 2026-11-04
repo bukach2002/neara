@@ -1,10 +1,14 @@
-export const apiBaseUrl = (process.env.NEXT_PUBLIC_API_APP_URL || process.env.API_APP_URL || 'http://localhost:4000').replace(/\/$/, '');
+// Requests are proxied through the `/api/:path*` rewrite in next.config.mjs, so browser API
+// calls stay on the web app's own origin and session/CSRF cookies remain first-party.
+export const apiBaseUrl = '';
 
 type ApiRequestOptions = RequestInit & {
   method?: string;
 };
 
 const REQUEST_ID_HEADER = 'x-request-id';
+
+export type ApiError = Error & { status?: number; clientEventLogged?: boolean };
 
 function createRequestId() {
   if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
@@ -23,9 +27,9 @@ function isCrossOriginApiRequest() {
   }
 
   try {
-    return new URL(apiBaseUrl).origin !== window.location.origin;
+    return new URL(apiBaseUrl, window.location.origin).origin !== window.location.origin;
   } catch {
-    return true;
+    return false;
   }
 }
 
@@ -91,7 +95,8 @@ export async function apiFetch(path: string, options: ApiRequestOptions = {}) {
         category: 'http_error',
         message: message.slice(0, 240),
       });
-      const httpError = new Error(message) as Error & { clientEventLogged?: boolean };
+      const httpError = new Error(message) as ApiError;
+      httpError.status = response.status;
       httpError.clientEventLogged = true;
       throw httpError;
     }
