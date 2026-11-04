@@ -15,7 +15,9 @@
     "format": "prettier --write \"**/*.{ts,tsx,js,json,md,css}\"",
     "db:generate": "npm --workspace apps/api run db:generate",
     "db:migrate": "npm --workspace apps/api run db:migrate",
-    "db:seed": "npm --workspace apps/api run db:seed"
+    "db:seed": "npm --workspace apps/api run db:seed",
+    "db:seed:platform-admin": "npm --workspace apps/api run db:seed:platform-admin",
+    "db:cleanup": "npm --workspace apps/api run db:cleanup"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^7.18.0",

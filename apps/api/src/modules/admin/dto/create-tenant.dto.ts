@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 import { IsEmail, IsOptional, IsString, IsUUID, Matches, MaxLength, MinLength } from 'class-validator';
 
 export class CreateTenantDto {
@@ -14,6 +15,7 @@ export class CreateTenantDto {
   slug!: string;
 
   @ApiProperty({ example: 'NEAR' })
+  @Transform(({ value }) => (typeof value === 'string' ? value.trim().toUpperCase() : value))
   @IsString()
   @Matches(/^[A-Z0-9]{2,10}$/)
   bookingPrefix!: string;

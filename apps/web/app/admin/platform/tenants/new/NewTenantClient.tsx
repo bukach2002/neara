@@ -29,7 +29,7 @@ export function NewTenantClient() {
       <form className="admin-form" onSubmit={submit}>
         <input name="name" placeholder="Tenant name" required />
         <input name="slug" placeholder="tenant-slug" required />
-        <input name="bookingPrefix" placeholder="NEAR" required />
+        <input name="bookingPrefix" placeholder="tenant-prefix" required />
         <input name="timezone" placeholder="Asia/Kolkata" />
         <button type="submit">Create draft</button>
       </form>

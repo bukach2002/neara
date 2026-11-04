@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+
+<html lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" name="viewport"/><meta content="mobile_tab" name="shell-type"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400..700;1,6..72,400..700&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{width:100%;margin:0;padding:0;min-height:100%;}body{overscroll-behavior-y:none;-webkit-tap-highlight-color:transparent;}.pb-safe{padding-bottom:env(safe-area-inset-bottom,0px);}.pt-safe{padding-top:env(safe-area-inset-top,0px);}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config = { darkMode: 'class', theme: { extend: { colors: { 'surface-container-lowest': '#ffffff', 'surface-bright': '#faf8ff', 'primary-fixed': '#d6e3ff', 'surface-container-highest': '#dae2fd', 'surface-container-low': '#f2f3ff', 'inverse-primary': '#adc7f7', 'on-primary-fixed': '#001b3c', 'outline-variant': '#c4c6cf', 'on-secondary-fixed-variant': '#005049', 'secondary-container': '#86f2e4', 'on-primary-container': '#86a0cd', 'outline': '#74777f', 'tertiary-fixed-dim': '#b5c4ff', 'on-surface-variant': '#43474e', 'on-secondary-fixed': '#00201d', 'secondary': '#006a61', 'tertiary-fixed': '#dbe1ff', 'on-background': '#131b2e', 'on-error': '#ffffff', 'primary-container': '#1a365d', 'on-primary-fixed-variant': '#2d476f', 'surface-container-high': '#e2e7ff', 'background': '#faf8ff', 'on-surface': '#131b2e', 'primary-fixed-dim': '#adc7f7', 'secondary-fixed': '#89f5e7', 'tertiary': '#001b58', 'error': '#ba1a1a', 'secondary-fixed-dim': '#6bd8cb', 'tertiary-container': '#002d86', 'error-container': '#ffdad6', 'inverse-on-surface': '#eef0ff', 'surface-container': '#eaedff', 'on-secondary-container': '#006f66', 'on-tertiary-container': '#7c9afb', 'on-primary': '#ffffff', 'inverse-surface': '#283044', 'on-secondary': '#ffffff', 'on-tertiary': '#ffffff', 'surface': '#faf8ff', 'on-tertiary-fixed-variant': '#1a3f9c', 'on-error-container': '#93000a', 'surface-tint': '#455f88', 'on-tertiary-fixed': '#00164d', 'surface-variant': '#dae2fd', 'surface-dim': '#d2d9f4', 'primary': '#002045' }, borderRadius: { 'DEFAULT': '0.25rem', 'lg': '0.5rem', 'xl': '0.75rem', 'full': '9999px' }, spacing: { 'space-xs': '0.25rem', 'gutter': '1rem', 'margin-desktop': '3rem', 'space-xl': '2rem', 'space-sm': '0.5rem', 'gutter-desktop': '2rem', 'space-lg': '1.5rem', 'space-md': '1rem', 'margin': '1rem', 'gutter-tablet': '1.5rem', 'margin-tablet': '2rem' }, fontFamily: { 'headline-sm': ['Newsreader'], 'body-lg': ['Plus Jakarta Sans'], 'price-lg': ['Plus Jakarta Sans'], 'headline-lg': ['Newsreader'], 'label-sm': ['Plus Jakarta Sans'], 'headline-md': ['Newsreader'], 'body-sm': ['Plus Jakarta Sans'], 'body-md': ['Plus Jakarta Sans'], 'headline-xl-mobile': ['Newsreader'], 'headline-xl': ['Newsreader'], 'label-lg': ['Plus Jakarta Sans'], 'label-md': ['Plus Jakarta Sans'], 'price-md': ['Plus Jakarta Sans'], 'headline-lg-mobile': ['Newsreader'] }, fontSize: { 'headline-sm': ['18px', { lineHeight: '24px', fontWeight: '600' }], 'body-lg': ['16px', { lineHeight: '26px', fontWeight: '400' }], 'price-lg': ['24px', { lineHeight: '30px', letterSpacing: '-0.02em', fontWeight: '700' }], 'headline-lg': ['32px', { lineHeight: '40px', letterSpacing: '-0.01em', fontWeight: '500' }], 'label-sm': ['10px', { lineHeight: '14px', letterSpacing: '0.04em', fontWeight: '700' }], 'headline-md': ['22px', { lineHeight: '28px', fontWeight: '500' }], 'body-sm': ['12px', { lineHeight: '18px', fontWeight: '400' }], 'body-md': ['14px', { lineHeight: '22px', fontWeight: '400' }], 'headline-xl-mobile': ['30px', { lineHeight: '38px', letterSpacing: '-0.015em', fontWeight: '500' }], 'headline-xl': ['40px', { lineHeight: '48px', letterSpacing: '-0.02em', fontWeight: '500' }], 'label-lg': ['14px', { lineHeight: '20px', letterSpacing: '0.01em', fontWeight: '600' }], 'label-md': ['12px', { lineHeight: '16px', letterSpacing: '0.02em', fontWeight: '600' }], 'price-md': ['16px', { lineHeight: '22px', letterSpacing: '-0.01em', fontWeight: '700' }], 'headline-lg-mobile': ['24px', { lineHeight: '32px', letterSpacing: '-0.01em', fontWeight: '500' }] } } } };</script><style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head><body class="bg-surface font-body-md text-body-md text-on-surface antialiased min-h-screen flex flex-col"><header class="fixed top-0 w-full z-50 pt-safe bg-surface/85 backdrop-blur-xl shadow-[0_1px_8px_rgba(0,0,0,0.03)]"><div class="h-16 px-gutter flex items-center justify-between"><div class="flex items-center gap-space-sm"><img alt="Neara Brand Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida/AEtjO1X4pGNct14Ebpe23_cn9wfIpnM7D0n3XVid0skVGoGNgqoGHhmnll9z5dCdNmiMEsOzv_CfaH80HsVuwbGwTSez6EySFQ7uGQAEyqfW7bpt-fRIplcSyMDUSsdGSqd_YccEMBA2NHJTwARQb9gl-uLcrK-CfNeqofInkXuz6h75hqmGZJzIpFQx_Wp5Ubsdiu5TEdzJffNCXFkMCVkBf202NaisQkMU8xWyv4f7Euw"/><span class="font-headline-sm text-headline-sm text-primary tracking-tight">Neara</span></div><div class="flex items-center gap-space-sm"><button aria-label="Notifications &amp; Activity" class="w-11 h-11 rounded-full flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors"><span class="material-symbols-outlined text-[22px]">notifications</span></button><div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center"><span class="material-symbols-outlined text-on-primary text-[18px]">person</span></div></div></div></header><main class="flex-1 flex flex-col relative w-full pt-16 pb-20 bg-surface min-h-screen"><div class="flex flex-col w-full pb-8">
+<!-- Search Criteria Ribbon / Refinement Bar -->
+<section class="px-gutter pt-3 pb-4 bg-surface-container-low shadow-sm">
+<div class="flex items-center justify-between gap-space-sm">
+<div class="flex items-center gap-space-sm min-w-0">
+<span class="material-symbols-outlined text-primary text-[20px] shrink-0">location_on</span>
+<div class="min-w-0">
+<p class="font-label-lg text-label-lg text-primary truncate">Wellness &amp; Clinics near Koregaon Park</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant truncate">Within 10 km • Pune East</p>
+</div>
+</div>
+<button class="shrink-0 h-9 px-3.5 rounded-full bg-surface-container-lowest text-primary font-label-md text-label-md flex items-center gap-1.5 shadow-sm active:scale-95 transition-transform" id="filter-btn">
+<span class="material-symbols-outlined text-[16px]">tune</span>
+<span>Edit Filters</span>
+</button>
+</div>
+<!-- Quick filter pill chips -->
+<div class="flex items-center gap-space-xs mt-3 overflow-x-auto no-scrollbar">
+<span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-primary text-on-primary font-label-sm text-label-sm whitespace-nowrap">
+<span>Available Today</span>
+<span class="material-symbols-outlined text-[14px]">check</span>
+</span>
+<span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-surface-container-highest text-on-surface-variant font-label-sm text-label-sm whitespace-nowrap">
+        All Modalities
+      </span>
+<span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-surface-container-highest text-on-surface-variant font-label-sm text-label-sm whitespace-nowrap">
+        Max ₹3,000
+      </span>
+<span class="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-surface-container-highest text-on-surface-variant font-label-sm text-label-sm whitespace-nowrap">
+        Verified Only
+      </span>
+</div>
+</section>
+<!-- Results Count & Trust Header -->
+<section class="px-gutter pt-5 pb-3 flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-secondary"></div>
+<p class="font-label-md text-label-md text-primary font-semibold">8 verified providers with available appointments</p>
+</div>
+<span class="material-symbols-outlined text-outline text-[18px]">sort</span>
+</section>
+<!-- Provider Cards Stream -->
+<section class="px-gutter flex flex-col gap-space-lg">
+<!-- Card 1: Prana Ayurveda & Yoga Sanctuary -->
+<article class="bg-surface-container-lowest rounded-xl p-4 shadow-sm flex flex-col gap-3">
+<div class="flex items-start justify-between gap-space-sm">
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-2">
+<span class="font-label-sm text-label-sm px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant uppercase tracking-wider">Wellness</span>
+<span class="text-on-surface-variant text-body-sm">•</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Lane 7, Koregaon Park</span>
+</div>
+<h2 class="font-headline-sm text-headline-sm text-primary mt-1">Prana Ayurveda &amp; Yoga Sanctuary</h2>
+<div class="flex items-center gap-1 mt-0.5 text-on-surface-variant">
+<span class="material-symbols-outlined text-[15px] text-secondary">near_me</span>
+<span class="font-body-sm text-body-sm">1.2 km away</span>
+</div>
+</div>
+<span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-secondary-fixed text-on-secondary-fixed font-label-sm text-label-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+          4 slots today
+        </span>
+</div>
+<!-- Practitioner Visual Framing -->
+<div class="relative w-full h-32 rounded-lg overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Serene warm interior of an Ayurvedic therapy room in Koregaon Park Pune with polished teakwood furniture, brass water vessels, fresh frangipani blossoms, soft natural sunlight streaming through louvers, quiet architectural balance in ivory and deep cobalt accents." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDRqjsYuAT2Hp8EeBkZCRdcqZUcKIQqmQoUbb4Oe07EIjaGonoQBaFFWys8VsYevSfr-RtyBZaBvIF95fBaCHikp6emS1KuiCKQc416aUmj61Y9v0LyjRLbQfJlhGvjEjg-UbKH7y4j3yAsY4tl-q7uHWwrBmtJsPcFx2ipgaWIvuppzXkPDfDkwZxx-iYAR60nFxaqJLyGbY4w_mZmEKH3EkU4_ThUNu2XAHxbb54"/>
+<div class="absolute bottom-2 left-2 px-2.5 py-1 rounded-md bg-surface-container-lowest/90 backdrop-blur-md">
+<p class="font-label-sm text-label-sm text-primary">Dr. Ananya Joshi, BAMS (14 yrs exp)</p>
+</div>
+</div>
+<!-- Services Preview Shelves -->
+<div class="bg-surface-container-low rounded-lg p-3 flex flex-col gap-2">
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Standard Services</p>
+<div class="flex items-center justify-between gap-space-sm">
+<span class="font-body-md text-body-md text-on-surface truncate">Abhyanga Therapy</span>
+<span class="font-price-md text-price-md text-primary shrink-0">60 min • ₹1,800</span>
+</div>
+<div class="w-full h-px bg-surface-container-highest"></div>
+<div class="flex items-center justify-between gap-space-sm">
+<span class="font-body-md text-body-md text-on-surface truncate">Doctor Consultation</span>
+<span class="font-price-md text-price-md text-primary shrink-0">30 min • ₹750</span>
+</div>
+</div>
+<!-- Action Button -->
+<button class="w-full h-12 rounded-xl bg-primary-container text-on-primary font-label-lg text-label-lg flex items-center justify-center gap-2 active:bg-primary transition-colors shadow-sm">
+<span>View Services &amp; Book</span>
+<span class="material-symbols-outlined text-[18px]">calendar_today</span>
+</button>
+</article>
+<!-- Card 2: Dr. Kulkarni Skin & Laser Centre -->
+<article class="bg-surface-container-lowest rounded-xl p-4 shadow-sm flex flex-col gap-3">
+<div class="flex items-start justify-between gap-space-sm">
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-2">
+<span class="font-label-sm text-label-sm px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant uppercase tracking-wider">Clinic</span>
+<span class="text-on-surface-variant text-body-sm">•</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Bund Garden Road</span>
+</div>
+<h2 class="font-headline-sm text-headline-sm text-primary mt-1">Dr. Kulkarni Skin &amp; Laser Centre</h2>
+<div class="flex items-center gap-1 mt-0.5 text-on-surface-variant">
+<span class="material-symbols-outlined text-[15px] text-secondary">near_me</span>
+<span class="font-body-sm text-body-sm">3.5 km away</span>
+</div>
+</div>
+<span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-surface-container-highest text-on-surface-variant font-label-sm text-label-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-outline"></span>
+          Slots from tomorrow
+        </span>
+</div>
+<!-- Practitioner Visual Framing -->
+<div class="relative w-full h-32 rounded-lg overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Modern clinical consultation suite in Bund Garden Road Pune, clean white aesthetic with subtle brushed steel instruments, bespoke minimalist cabinetry, neutral beige linen armchairs, illuminated medical cert diplomas, architectural photography style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBFctuIKMfYOG6QONGVBgp_W6Nu9gPqtfXptnSyCczZ8UZG2v6QoWrIJ0opi5kDVWwW7fT_QSH3ogOvvbdDyUXQn0ebluTk-PNJSwAsSrZ3h_uj-KsBA92srMfffQDWCawc4_UkHlmsk8mkeY845vaL-51l7ydXEVKEisZt9SIeLwcjc_i6iG6hlxVQeQXdL_9FEYX1yfy2tPd-xlgrDCp-SF87R_9DYSx-m0gJ13U"/>
+<div class="absolute bottom-2 left-2 px-2.5 py-1 rounded-md bg-surface-container-lowest/90 backdrop-blur-md">
+<p class="font-label-sm text-label-sm text-primary">Dr. Rohan Kulkarni, MD Derm (18 yrs exp)</p>
+</div>
+</div>
+<!-- Services Preview Shelves -->
+<div class="bg-surface-container-low rounded-lg p-3 flex flex-col gap-2">
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Standard Services</p>
+<div class="flex items-center justify-between gap-space-sm">
+<span class="font-body-md text-body-md text-on-surface truncate">Dermatology Initial Consult</span>
+<span class="font-price-md text-price-md text-primary shrink-0">20 min • ₹900</span>
+</div>
+<div class="w-full h-px bg-surface-container-highest"></div>
+<div class="flex items-center justify-between gap-space-sm">
+<span class="font-body-md text-body-md text-on-surface truncate">Laser Skin Therapy</span>
+<span class="font-price-md text-price-md text-primary shrink-0">45 min • ₹2,800</span>
+</div>
+</div>
+<!-- Action Button -->
+<button class="w-full h-12 rounded-xl bg-primary-container text-on-primary font-label-lg text-label-lg flex items-center justify-center gap-2 active:bg-primary transition-colors shadow-sm">
+<span>View Services &amp; Book</span>
+<span class="material-symbols-outlined text-[18px]">calendar_today</span>
+</button>
+</article>
+<!-- Card 3: Soma Mind & Wellness Consulting -->
+<article class="bg-surface-container-lowest rounded-xl p-4 shadow-sm flex flex-col gap-3">
+<div class="flex items-start justify-between gap-space-sm">
+<div class="flex flex-col min-w-0">
+<div class="flex items-center gap-2">
+<span class="font-label-sm text-label-sm px-2 py-0.5 rounded-full bg-surface-container-high text-on-surface-variant uppercase tracking-wider">Consulting</span>
+<span class="text-on-surface-variant text-body-sm">•</span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">Viman Nagar</span>
+</div>
+<h2 class="font-headline-sm text-headline-sm text-primary mt-1">Soma Mind &amp; Wellness Consulting</h2>
+<div class="flex items-center gap-1 mt-0.5 text-on-surface-variant">
+<span class="material-symbols-outlined text-[15px] text-secondary">near_me</span>
+<span class="font-body-sm text-body-sm">6.2 km away</span>
+</div>
+</div>
+<span class="shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-secondary-fixed text-on-secondary-fixed font-label-sm text-label-sm">
+<span class="w-1.5 h-1.5 rounded-full bg-secondary"></span>
+          2 slots today
+        </span>
+</div>
+<!-- Practitioner Visual Framing -->
+<div class="relative w-full h-32 rounded-lg overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="Warm and private acoustic wellness consulting studio in Viman Nagar Pune with comfortable Scandinavian linen lounge chairs, natural indoor ficus plant, warm brass floor lamp, bookshelves with psychology texts, soft diffused light." src="https://lh3.googleusercontent.com/aida-public/AB6AXuATwYCV9uYsNqoo7blxvAoUcFVm32BTucCOBtxlGj7nkHgpNYhKotMrQfT8xcpxzgpGHHxtj5iMsO9c2jukdHOwAFXo2d_5rL7ibDY-5Fy6F1l14pJyaDvl5M9SRP5pwNfXHvHKDBA0un1UQudWSzZ-PPoTaUza8EYHTgM5XRISAmdmCiMkK1VY08Y1zuZcx84SRg-n02THHtygh97JDs3c-3G2YUXkJy9070IxPIc"/>
+<div class="absolute bottom-2 left-2 px-2.5 py-1 rounded-md bg-surface-container-lowest/90 backdrop-blur-md">
+<p class="font-label-sm text-label-sm text-primary">Meera Sen, M.Sc Clinical Psych (11 yrs exp)</p>
+</div>
+</div>
+<!-- Services Preview Shelves -->
+<div class="bg-surface-container-low rounded-lg p-3 flex flex-col gap-2">
+<p class="font-label-sm text-label-sm text-on-surface-variant uppercase tracking-wider">Standard Services</p>
+<div class="flex items-center justify-between gap-space-sm">
+<span class="font-body-md text-body-md text-on-surface truncate">Diet &amp; Nutrition Advisory</span>
+<span class="font-price-md text-price-md text-primary shrink-0">45 min • ₹1,500</span>
+</div>
+<div class="w-full h-px bg-surface-container-highest"></div>
+<div class="flex items-center justify-between gap-space-sm">
+<span class="font-body-md text-body-md text-on-surface truncate">Stress Management Session</span>
+<span class="font-price-md text-price-md text-primary shrink-0">50 min • ₹2,000</span>
+</div>
+</div>
+<!-- Action Button -->
+<button class="w-full h-12 rounded-xl bg-primary-container text-on-primary font-label-lg text-label-lg flex items-center justify-center gap-2 active:bg-primary transition-colors shadow-sm">
+<span>View Services &amp; Book</span>
+<span class="material-symbols-outlined text-[18px]">calendar_today</span>
+</button>
+</article>
+</section>
+<!-- Paging Indicator & Load More Footer -->
+<section class="px-gutter mt-6 flex flex-col items-center gap-3">
+<div class="w-full bg-surface-container-highest h-1 rounded-full overflow-hidden">
+<div class="bg-primary h-full w-[37.5%] rounded-full"></div>
+</div>
+<div class="flex items-center justify-between w-full">
+<p class="font-label-md text-label-md text-on-surface-variant">Showing 3 of 8 providers</p>
+<button class="font-label-md text-label-md text-primary flex items-center gap-1 py-1 px-2 rounded hover:bg-surface-container-high transition-colors">
+<span>Load 5 More</span>
+<span class="material-symbols-outlined text-[16px]">expand_more</span>
+</button>
+</div>
+<!-- Editorial Concierge Note -->
+<div class="mt-4 p-4 rounded-xl bg-surface-container-lowest shadow-sm flex items-start gap-3 w-full">
+<span class="material-symbols-outlined text-secondary text-[22px] shrink-0 mt-0.5">verified_user</span>
+<div class="flex flex-col">
+<p class="font-label-md text-label-md text-primary font-semibold">Neara Standard of Practice</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-0.5">Every clinic and specialist is verified for professional qualifications, hygiene protocol, and punctuality. Zero sponsored placements.</p>
+</div>
+</div>
+</section>
+</div>
+<script>
+  document.getElementById('filter-btn')?.addEventListener('click', () => {
+    const el = event.currentTarget;
+    el.classList.add('bg-primary-fixed');
+    setTimeout(() => {
+      el.classList.remove('bg-primary-fixed');
+    }, 250);
+  });
+</script></main><nav class="fixed bottom-0 w-full z-50 pb-safe bg-surface/90 backdrop-blur-xl shadow-[0_-2px_12px_rgba(0,0,0,0.03)]" data-active-classes="text-primary-container font-semibold after:content-[''] after:block after:w-5 after:h-0.5 after:bg-secondary after:rounded-full after:mt-0.5"><div class="h-16 px-gutter flex items-center justify-around"><a aria-current="page" class="flex flex-col items-center justify-center min-w-[56px] min-h-[44px] transition-colors text-primary-container font-semibold after:content-[''] after:block after:w-5 after:h-0.5 after:bg-secondary after:rounded-full after:mt-0.5" data-path="discover" href="#"><span class="material-symbols-outlined text-[24px]">explore</span><span class="font-label-sm text-label-sm tracking-wide mt-0.5">Discover</span></a><a class="flex flex-col items-center justify-center min-w-[56px] min-h-[44px] text-on-surface-variant transition-colors" data-path="bookings" href="#"><span class="material-symbols-outlined text-[24px]">calendar_today</span><span class="font-label-sm text-label-sm tracking-wide mt-0.5">Bookings</span></a><a class="flex flex-col items-center justify-center min-w-[56px] min-h-[44px] text-on-surface-variant transition-colors" data-path="profile" href="#"><span class="material-symbols-outlined text-[24px]">person</span><span class="font-label-sm text-label-sm tracking-wide mt-0.5">Profile</span></a></div></nav></body></html>

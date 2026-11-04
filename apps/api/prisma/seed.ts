@@ -18,192 +18,23 @@ type TenantSeed = {
   availability: { dayOfWeek: number; startLocalTime: string; endLocalTime: string }[];
 };
 
-// ── London tenants (static) ──────────────────────────────────
-const londonTenants: TenantSeed[] = [
-  {
-    name: 'KT Hair & Beauty', slug: 'kt-hair-beauty', bookingPrefix: 'KT_HB', categorySlug: 'salon',
-    description: 'A friendly hair and beauty salon offering cuts, colouring, and styling for all the family in Greenford.',
-    timezone: 'Europe/London', countryCode: 'GB',
-    location: { name: 'Greenford Salon', addressLine: '112 Ruislip Road', locality: 'Greenford', city: 'London', state: 'Greater London', postalCode: 'UB6 9QH', latitude: '51.542500', longitude: '-0.348000' },
-    services: [
-      { name: 'Ladies Haircut & Blow Dry', slug: 'ladies-haircut-blow-dry', durationMinutes: 45, price: '35.00', currency: 'GBP' },
-      { name: 'Gents Haircut', slug: 'gents-haircut', durationMinutes: 30, price: '18.00', currency: 'GBP' },
-    ],
-    experts: [
-      { displayName: 'Kiran Taylor', slug: 'kiran-taylor', shortBio: 'Owner-stylist with 12 years experience in precision cutting and colouring.' },
-    ],
-    availability: mkAvail(1, 6, '09:00', '18:00'),
-  },
-  {
-    name: 'Maru Barber Shop', slug: 'maru-barber-shop', bookingPrefix: 'MARU', categorySlug: 'salon',
-    description: 'Traditional barber shop serving the Greenford community with classic cuts and hot towel shaves.',
-    timezone: 'Europe/London', countryCode: 'GB',
-    location: { name: 'The Broadway Shop', addressLine: '6 The Broadway', locality: 'Greenford', city: 'London', state: 'Greater London', postalCode: 'UB6 9PR', latitude: '51.544000', longitude: '-0.346500' },
-    services: [
-      { name: 'Classic Haircut', slug: 'classic-haircut', durationMinutes: 30, price: '15.00', currency: 'GBP' },
-      { name: 'Hot Towel Shave', slug: 'hot-towel-shave', durationMinutes: 30, price: '22.00', currency: 'GBP' },
-    ],
-    experts: [{ displayName: 'Maru Patel', slug: 'maru-patel', shortBio: 'Master barber with 20 years experience in traditional and modern styles.' }],
-    availability: mkAvail(1, 6, '09:00', '17:30'),
-  },
-  {
-    name: 'Mirror Mirror', slug: 'mirror-mirror', bookingPrefix: 'MIRR', categorySlug: 'salon',
-    description: 'Full-service hair and beauty salon offering cuts, colour, nails, and aesthetic treatments in Greenford.',
-    timezone: 'Europe/London', countryCode: 'GB',
-    location: { name: 'Oldfield Lane Salon', addressLine: '376 Oldfield Lane North', locality: 'Greenford', city: 'London', state: 'Greater London', postalCode: 'UB6 8PU', latitude: '51.549000', longitude: '-0.341000' },
-    services: [
-      { name: 'Cut & Finish', slug: 'cut-finish', durationMinutes: 45, price: '32.00', currency: 'GBP' },
-      { name: 'Gel Manicure', slug: 'gel-manicure', durationMinutes: 45, price: '28.00', currency: 'GBP' },
-    ],
-    experts: [
-      { displayName: 'Claire Johnson', slug: 'claire-johnson', shortBio: 'Senior stylist passionate about creative colour and precision cuts.' },
-    ],
-    availability: mkAvail(1, 6, '09:30', '18:00'),
-  },
-  {
-    name: 'Split Enz Hair and Beauty', slug: 'split-enz-hair-beauty', bookingPrefix: 'SPLT', categorySlug: 'salon',
-    description: 'Community hair and beauty salon in Perivale offering affordable cuts, colour, and beauty treatments.',
-    timezone: 'Europe/London', countryCode: 'GB',
-    location: { name: 'Medway Parade Salon', addressLine: '22 Medway Parade', locality: 'Perivale', city: 'London', state: 'Greater London', postalCode: 'UB6 8HR', latitude: '51.536000', longitude: '-0.325000' },
-    services: [
-      { name: 'Wash Cut & Blow Dry', slug: 'wash-cut-blow-dry', durationMinutes: 45, price: '30.00', currency: 'GBP' },
-    ],
-    experts: [{ displayName: 'Emma Richards', slug: 'emma-richards', shortBio: 'Friendly stylist dedicated to giving every client a look they love.' }],
-    availability: [...mkAvail(1, 5, '10:00', '17:00'), { dayOfWeek: 6, startLocalTime: '09:00', endLocalTime: '15:00' }],
-  },
-  {
-    name: 'Zaira Rose Salon', slug: 'zaira-rose-salon', bookingPrefix: 'ZRS_', categorySlug: 'salon',
-    description: 'Boutique hair salon in Perivale specialising in men\'s haircuts, beard grooming, and traditional barbering.',
-    timezone: 'Europe/London', countryCode: 'GB',
-    location: { name: 'Aintree Road Studio', addressLine: '23 Aintree Road', locality: 'Perivale', city: 'London', state: 'Greater London', postalCode: 'UB6 7LA', latitude: '51.538500', longitude: '-0.328000' },
-    services: [
-      { name: 'Men\'s Haircut', slug: 'mens-haircut', durationMinutes: 30, price: '16.00', currency: 'GBP' },
-    ],
-    experts: [{ displayName: 'Zaira Ahmed', slug: 'zaira-ahmed', shortBio: 'Barber and salon owner with a keen eye for detail and modern styles.' }],
-    availability: mkAvail(1, 6, '09:00', '18:00'),
-  },
-  {
-    name: 'Princess Beauty Salon', slug: 'princess-beauty-salon', bookingPrefix: 'PB_S', categorySlug: 'salon',
-    description: 'Nail and beauty salon on Greenford Broadway offering manicures, pedicures, waxing, and brow treatments.',
-    timezone: 'Europe/London', countryCode: 'GB',
-    location: { name: 'Broadway Beauty Lounge', addressLine: 'Unit 3, 6 The Broadway', locality: 'Greenford', city: 'London', state: 'Greater London', postalCode: 'UB6 9PR', latitude: '51.544000', longitude: '-0.346800' },
-    services: [
-      { name: 'Classic Manicure', slug: 'classic-manicure', durationMinutes: 30, price: '22.00', currency: 'GBP' },
-      { name: 'Spa Pedicure', slug: 'spa-pedicure', durationMinutes: 45, price: '32.00', currency: 'GBP' },
-    ],
-    experts: [{ displayName: 'Priya Singh', slug: 'priya-singh', shortBio: 'Nail technician and beauty therapist with a passion for perfection.' }],
-    availability: mkAvail(1, 6, '10:00', '18:00'),
-  },
-  {
-    name: 'Studio 44 Hair & Nail', slug: 'studio-44-hair-nail', bookingPrefix: 'ST44', categorySlug: 'salon',
-    description: 'Hair and nail salon in Northolt providing quality cuts, colour, gel nails, and waxing services.',
-    timezone: 'Europe/London', countryCode: 'GB',
-    location: { name: 'Northolt Studio', addressLine: '44 Church Road', locality: 'Northolt', city: 'London', state: 'Greater London', postalCode: 'UB5 5AB', latitude: '51.548500', longitude: '-0.368000' },
-    services: [
-      { name: 'Haircut & Style', slug: 'haircut-style', durationMinutes: 45, price: '28.00', currency: 'GBP' },
-    ],
-    experts: [{ displayName: 'Diana Cooper', slug: 'diana-cooper', shortBio: 'Senior hair and nail stylist with 8 years experience in the industry.' }],
-    availability: mkAvail(1, 6, '09:30', '17:30'),
-  },
-  {
-    name: 'Uban Spa Studio', slug: 'uban-spa-studio', bookingPrefix: 'UBAN', categorySlug: 'wellness',
-    description: 'Holistic spa and wellness studio in Greenford offering massages, facials, waxing, and relaxation therapies.',
-    timezone: 'Europe/London', countryCode: 'GB',
-    location: { name: 'Bilton Road Spa', addressLine: '20 Bilton Road', locality: 'Greenford', city: 'London', state: 'Greater London', postalCode: 'UB6 7DS', latitude: '51.540000', longitude: '-0.322500' },
-    services: [
-      { name: 'Swedish Full Body Massage', slug: 'swedish-full-body-massage', durationMinutes: 60, price: '55.00', currency: 'GBP' },
-      { name: 'Deep Tissue Massage', slug: 'deep-tissue-massage', durationMinutes: 60, price: '65.00', currency: 'GBP' },
-    ],
-    experts: [
-      { displayName: 'Ursula Banks', slug: 'ursula-banks', shortBio: 'Qualified massage therapist specialising in deep tissue and sports massage.' },
-    ],
-    availability: [...mkAvail(1, 5, '10:00', '19:00'), { dayOfWeek: 6, startLocalTime: '09:00', endLocalTime: '17:00' }],
-  },
-  {
-    name: 'Mikel\'s Hairdresser', slug: 'mikels-hairdresser', bookingPrefix: 'MKLS', categorySlug: 'salon',
-    description: 'Family-run barbershop in Perivale offering traditional and contemporary haircuts for men and boys.',
-    timezone: 'Europe/London', countryCode: 'GB',
-    location: { name: 'Perivale Barbers', addressLine: '285 Ruislip Road', locality: 'Perivale', city: 'London', state: 'Greater London', postalCode: 'UB6 9QH', latitude: '51.539000', longitude: '-0.320000' },
-    services: [
-      { name: 'Standard Haircut', slug: 'standard-haircut', durationMinutes: 25, price: '14.00', currency: 'GBP' },
-    ],
-    experts: [{ displayName: 'Mikel Garcia', slug: 'mikel-garcia', shortBio: 'Owner-barber with a friendly approach and over 15 years of trade.' }],
-    availability: [{ dayOfWeek: 1, startLocalTime: '10:00', endLocalTime: '17:00' }, ...mkAvail(2, 5, '09:00', '17:30'), { dayOfWeek: 6, startLocalTime: '08:30', endLocalTime: '15:00' }],
-  },
-  {
-    name: 'Freddy\'s London Ltd', slug: 'freddys-london', bookingPrefix: 'FRED', categorySlug: 'salon',
-    description: 'Premium hair salon in Perivale offering high-quality cuts, colour, and bridal hair services.',
-    timezone: 'Europe/London', countryCode: 'GB',
-    location: { name: 'Bilton Road Salon', addressLine: '42B Bilton Road', locality: 'Perivale', city: 'London', state: 'Greater London', postalCode: 'UB6 7DH', latitude: '51.539500', longitude: '-0.321500' },
-    services: [
-      { name: 'Premium Cut & Finish', slug: 'premium-cut-finish', durationMinutes: 60, price: '45.00', currency: 'GBP' },
-    ],
-    experts: [{ displayName: 'Freddy Clarke', slug: 'freddy-clarke', shortBio: 'Creative director and colour specialist with editorial experience.' }],
-    availability: [{ dayOfWeek: 1, startLocalTime: '11:00', endLocalTime: '19:00' }, ...mkAvail(2, 5, '09:00', '18:00'), { dayOfWeek: 6, startLocalTime: '09:00', endLocalTime: '17:00' }],
-  },
-];
 
 // ── Vasai-Virar area tenant data generators ─────────────────
 const vasaiAreas: AreaDef[] = [
-  { locality: 'Vasai East', lat: 19.439, lng: 72.810, pincode: '401201' },
-  { locality: 'Vasai West', lat: 19.440, lng: 72.795, pincode: '401202' },
-  { locality: 'Nallasopara East', lat: 19.425, lng: 72.810, pincode: '401203' },
-  { locality: 'Nallasopara West', lat: 19.423, lng: 72.793, pincode: '401209' },
-  { locality: 'Navghar', lat: 19.450, lng: 72.815, pincode: '401201' },
-  { locality: 'Manikpur', lat: 19.435, lng: 72.800, pincode: '401201' },
-  { locality: 'Virar East', lat: 19.465, lng: 72.820, pincode: '401303' },
-  { locality: 'Virar West', lat: 19.462, lng: 72.795, pincode: '401305' },
-  { locality: 'Waliv', lat: 19.445, lng: 72.835, pincode: '401208' },
-  { locality: 'Agashi', lat: 19.470, lng: 72.785, pincode: '401301' },
-  { locality: 'Umela', lat: 19.450, lng: 72.795, pincode: '401202' },
-  { locality: 'Bolinj', lat: 19.420, lng: 72.815, pincode: '401203' },
-  { locality: 'Bhuigaon', lat: 19.410, lng: 72.800, pincode: '401202' },
-  { locality: 'Vaitarna', lat: 19.480, lng: 72.800, pincode: '401303' },
-  { locality: 'Arnala', lat: 19.490, lng: 72.770, pincode: '401302' },
-  { locality: 'Nirmal', lat: 19.415, lng: 72.825, pincode: '401203' },
-  { locality: 'Kaman', lat: 19.395, lng: 72.790, pincode: '401202' },
+  { locality: 'Nallasopara West', lat: 19.423, lng: 72.793, pincode: '401209' }
 ];
 
 // Vasai-Virar business names
 const vasaiBusinessNames: string[] = [
-  'Rutu Beauty Salon', 'Mandar Hair Dresser', 'Sai Dham Beauty Parlour', 'Laxmi Hair & Beauty',
-  'Ganesh Barber & Style', 'Mangal Murti Saloon', 'Pratibha Beauty Lounge', 'Om Sai Unisex Salon',
-  'Shree Krupa Beauty Parlour', 'Aai Beauty Studio', 'Rajesh Cuts & Style', 'Sonal Beauty & Skin Care',
-  'Durga Hair Salon', 'Shiv Krupa Hair Dresser', 'Rasika Beauty Parlour', 'Sagar Barber Shop',
-  'Priyanka Beauty Lounge', 'Nana Nani Unisex Salon', 'Krishna Hair Cutting', 'Madhu Beauty Studio',
-  'Shubham Saloon & Spa', 'Swaroop Beauty Corner', 'Rani Beauty Parlour', 'Vaibhav Hair Dresser',
-  'Ankita Beauty & Wellness', 'Shree Ganesh Barber', 'Sneha Beauty Studio', 'Omkar Salon & Spa',
-  'Jai Mata Di Beauty Parlour', 'Urmila Hair & Beauty', 'Siddhivinayak Saloon', 'Avanti Unisex Salon',
-  'Reshma Beauty Lounge', 'Tukaram Barber Shop', 'Nirmal Hair Studio', 'Rupali Beauty Parlour',
-  'Gajanan Hair Cutting', 'Shivneri Beauty Salon', 'Komal Beauty & Style', 'Dhanashree Skin Clinic',
-  'Yogeshwari Beauty Lounge', 'Sai Samarth Barber', 'Aditi Beauty & Spa', 'Vikas Hair Dresser',
-  'Kirti Beauty Corner', 'Shraddha Unisex Salon', 'Prakash Barber Shop', 'Prerna Beauty Studio',
-  'Sourabh Hair Cutting', 'Devika Beauty & Wellness', 'Shanti Salon & Spa', 'Ramesh Barber & Stylist',
-  'Vaishali Beauty Parlour', 'Vishal Hair Studio', 'Rohini Beauty Lounge', 'Aditya Barber Shop',
-  'Gauri Beauty & Skin', 'Mahesh Hair Cutting', 'Samruddhi Beauty Salon', 'Sahara Unisex Salon',
-  'Bhakti Beauty Corner', 'Deepak Barber Shop', 'Suvarna Beauty Studio', 'Sagarika Beauty & Spa',
-  'Rushikesh Hair Style', 'Mayuri Beauty Parlour', 'Shree Sant Saloon', 'Pallavi Beauty & Wellness',
-  'Mandar Cuts & Style', 'Arpita Beauty Lounge', 'Shivshakti Barber', 'Supriya Unisex Salon',
-  'Sanket Hair Studio', 'Aishwarya Beauty & Style', 'Guru Kripa Barber', 'Vandana Beauty Salon',
-  'Akash Hair Cutting', 'Chandrika Beauty Lounge', 'Satyam Unisex Salon', 'Bhagyashree Beauty Studio',
-  'Akshay Barber & Style', 'Shweta Skin & Hair Clinic', 'Laxmi Narayan Saloon', 'Ananya Beauty Lounge',
-  'Sunil Hair Dresser', 'Nivedita Beauty Salon', 'Om Shanti Barber Shop', 'Sejal Beauty Studio',
-  'Parag Hair Cutting', 'Neelam Beauty Parlour', 'Mauli Saloon & Spa', 'Asmita Beauty Corner',
-  'Dattatreya Barber', 'Kajal Beauty Lounge', 'Sai Hair & Beauty', 'Pooja Beauty & Wellness',
-  'Vivek Hair Studio', 'Tanvi Unisex Salon', 'Shreedhar Barber Shop', 'Prachi Beauty & Style',
-  'Mrunal Beauty Lounge', 'Harish Hair Cutting', 'Sheetal Skin Care Clinic', 'Adwait Barber & Stylist',
+  'Sushi Glamour Studio And Academy'
 ];
 
 const vasaiExpertFirst: string[] = [
-  'Rahul', 'Geeta', 'Pravin', 'Nisha', 'Dinesh', 'Sonali', 'Mahesh', 'Komal', 'Sandeep', 'Deepa',
-  'Vishal', 'Archana', 'Anil', 'Manisha', 'Sanjay', 'Varsha', 'Ravi', 'Swati', 'Nilesh', 'Pallavi',
-  'Girish', 'Smita', 'Harshad', 'Rupali', 'Milind', 'Aarti', 'Sachin', 'Bhavna', 'Yogesh', 'Hema',
-  'Vaibhav', 'Sujata', 'Amol', 'Madhuri', 'Prasad', 'Anita', 'Umesh', 'Prachi', 'Bhushan', 'Rekha',
+  'Nisha',
 ];
 
 const vasaiExpertLast: string[] = [
-  'Verma', 'Dubey', 'Kamat', 'Sawant', 'Pandey', 'Mhatre', 'Sutar', 'Bhoir', 'Chavan', 'Yeole',
-  'Keni', 'Gurav', 'Khaire', 'Palsekar', 'Savant', 'Tandel', 'Wadkar', 'Koli', 'Bacchav', 'Vartak',
+  'Soni',
 ];
 
 // ── Pune-area tenant data generators ─────────────────────────
@@ -230,29 +61,15 @@ const puneAreas: AreaDef[] = [
 ];
 
 const puneBusinessNames: string[] = [
-  'Style Hub Salon & Spa', 'Glow & Grace Beauty Salon', 'Royal Cuts Barbershop', 'Natraj Hair & Beauty',
-  'Shree Sai Beauty Parlour', 'Lavender Beauty Lounge', 'Shagun Hair Studio', 'Impression Unisex Salon',
-  'Rang De Beauty Salon', 'Classic Looks Salon', 'Mohan Barber & Style', 'Veer Barber Shop',
-  'Trendy Cuts Salon', 'Green Trends Unisex', 'Sana Beauty & Skin Care', 'Pari Beauty Salon',
-  'Shivam Hair Dresser', 'Blush Beauty Studio', 'Anjali Beauty Parlour', 'Deccan Barbers & Style',
-  'Pure Glow Salon', 'Ruturaj Hair Cutting', 'Keshav Saree & Beauty', 'Akruti Beauty Salon',
-  'Shree Datta Hair Dresser', 'Kala Niketan Beauty Parlour', 'Venus Unisex Salon', 'Apna Barber Shop',
-  'Trimurti Beauty Salon', 'Dream Cuts Salon', 'Milan Beauty Studio', 'Riddhi Siddhi Salon',
-  'Chandan Hair Dresser', 'Reba Hair & Beauty', 'Sai Kripa Beauty Parlour', 'Adinath Unisex Salon',
-  'Aarya Beauty Lounge', 'New Fashion Barber Shop', 'Arpita Beauty Clinic', 'Swasthya Physiotherapy Clinic',
-  'Nandanvan Spa & Wellness', 'Om Physiotherapy & Rehab', 'Sai Dental Clinic & Wellness',
-  'Drushti Skin & Hair Clinic', 'Pranayam Wellness Studio', 'Sahaj Spa & Massage',
-  'Heal Easy Physiotherapy', 'Ayurjeevan Spa & Wellness', 'Smile Care Dental Clinic', 'Yoga Prana Wellness',
+ 
 ];
 
 const puneExpertFirst: string[] = [
-  'Rajesh', 'Sunita', 'Rohan', 'Priya', 'Amit', 'Neha', 'Sachin', 'Kavita', 'Vijay', 'Anita',
-  'Suresh', 'Maya', 'Deepak', 'Pooja', 'Manish', 'Rekha', 'Ganesh', 'Shweta', 'Nitin', 'Asha',
+  
 ];
 
 const puneExpertLast: string[] = [
-  'Sharma', 'Patil', 'Joshi', 'Kulkarni', 'Deshmukh', 'More', 'Jadhav', 'Gawande', 'Bhosale', 'Kadam',
-  'Shinde', 'Pawar', 'Sathe', 'Apte', 'Gokhale', 'Dixit', 'Phadke', 'Mane', 'Dalvi', 'Mahajan',
+  
 ];
 
 const saloonServices = [
@@ -300,7 +117,7 @@ function slugify(text: string): string {
 function generatePuneTenants(): TenantSeed[] {
   const tenants: TenantSeed[] = [];
 
-  for (let i = 0; i < 50; i++) {
+  for (let i = 0; i < 0; i++) {
     const area = puneAreas[i % puneAreas.length];
     const name = puneBusinessNames[i];
     const catSlug = i < 45 ? 'salon' : 'wellness';
@@ -358,7 +175,7 @@ function generatePuneTenants(): TenantSeed[] {
 function generateVasaiTenants(): TenantSeed[] {
   const tenants: TenantSeed[] = [];
 
-  for (let i = 0; i < 100; i++) {
+  for (let i = 0; i < 0; i++) {
     const area = vasaiAreas[i % vasaiAreas.length];
     const name = vasaiBusinessNames[i];
     const catSlug = i < 92 ? 'salon' : 'wellness';
@@ -414,7 +231,7 @@ function generateVasaiTenants(): TenantSeed[] {
 
 const puneTenants = generatePuneTenants();
 const vasaiTenants = generateVasaiTenants();
-const allTenants = [...londonTenants, ...puneTenants, ...vasaiTenants];
+const allTenants =[...puneTenants, ...vasaiTenants];
 
 async function upsertCategory(name: string, slug: string) {
   return prisma.category.upsert({
@@ -436,29 +253,30 @@ async function main() {
   const categoryBySlug: Record<string, typeof salon> = { salon, wellness, clinic, consulting };
 
   // ── Admin users ──────────────────────────────────────────────
-  const passwordHash = await bcrypt.hash('ChangeMe123!', 12);
+ // const tenantPasswordHash = await bcrypt.hash('EOjz4bphEDvoRtyp!', 12);
+  const adminPasswordHash = await bcrypt.hash('D5xzJmymKWBA9DETjUSUe6YxCXHDLL6', 12);
 
   const platformAdmin = await prisma.user.upsert({
-    where: { email: 'platform.admin@neara.local' },
-    update: { name: 'Platform Admin', platformRole: PlatformRole.platform_admin, passwordHash },
+    where: { email: 'platform.admin@tradunio.com' },
+    update: { name: 'Platform Admin', platformRole: PlatformRole.platform_admin, passwordHash:adminPasswordHash },
     create: {
-      email: 'platform.admin@neara.local',
+      email: 'admin@tradunio.com',
       name: 'Platform Admin',
       platformRole: PlatformRole.platform_admin,
-      passwordHash,
+      passwordHash:adminPasswordHash,
     },
   });
-
+  /*
   const tenantAdmin = await prisma.user.upsert({
     where: { email: 'tenant.admin@neara.local' },
-    update: { name: 'Tenant Admin', passwordHash },
+    update: { name: 'Tenant Admin', tenantPasswordHash },
     create: {
       email: 'tenant.admin@neara.local',
       name: 'Tenant Admin',
-      passwordHash,
+        passwordHash: tenantPasswordHash,
     },
   });
-
+*/
   // ── Clean existing data ──────────────────────────────────────
   await prisma.session.deleteMany({});
   await prisma.otpToken.deleteMany({});
@@ -563,9 +381,9 @@ async function main() {
       }
     }
 
-    await prisma.tenantMembership.create({
-      data: { tenantId: tenant.id, userId: tenantAdmin.id, role: TenantRole.owner },
-    });
+   // await prisma.tenantMembership.create({
+   //   data: { tenantId: tenant.id, userId: tenantAdmin.id, role: TenantRole.owner },
+  //  });
 
     await prisma.auditLog.create({
       data: {
@@ -580,13 +398,13 @@ async function main() {
     });
   }
 
-  const londonCount = londonTenants.length;
+ // const londonCount = londonTenants.length;
   const puneCount = puneTenants.length;
   const vasaiCount = vasaiTenants.length;
   console.log('Seed complete');
-  console.log(`Platform admin: platform.admin@neara.local / ChangeMe123!`);
-  console.log(`Tenant admin: tenant.admin@neara.local / ChangeMe123!`);
-  console.log(`Seeded ${londonCount} London + ${puneCount} Pune + ${vasaiCount} Vasai-Virar = ${allTenants.length} total`);
+ // console.log(`Platform admin: platform.admin@neara.local / ChangeMe123!`);
+ // console.log(`Tenant admin: tenant.admin@neara.local / ChangeMe123!`);
+ // console.log(`Seeded ${londonCount} London + ${puneCount} Pune + ${vasaiCount} Vasai-Virar = ${allTenants.length} total`);
 }
 
 main()

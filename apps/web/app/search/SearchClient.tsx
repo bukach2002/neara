@@ -1,13 +1,21 @@
 'use client';
 
-import { CalendarDays, Clock, LocateFixed, MapPin, Search } from 'lucide-react';
+import { ChevronDown, LoaderCircle, LocateFixed, MapPin, Search, SlidersHorizontal, X } from 'lucide-react';
 import { FormEvent, useEffect, useState } from 'react';
-import { LocalityAutocomplete, LocalitySuggestion } from '../components/LocalityAutocomplete';
 import { apiGet, SearchTenant } from '../lib/api';
-import { Badge, Notice } from '../components/ui';
+import { EmptyState } from '../components/neara/app-shell';
+import { ProviderCard } from '../components/neara/provider-card';
 
 type SearchResponse = { items: SearchTenant[] };
+type CategoryOption = { name: string; slug: string };
 type ReverseGeocodeResult = { locality: string; city?: string };
+
+const fallbackCategories: CategoryOption[] = [
+  { name: 'Salon', slug: 'salon' },
+  { name: 'Wellness', slug: 'wellness' },
+  { name: 'Clinic', slug: 'clinic' },
+  { name: 'Consulting', slug: 'consulting' },
+];
 
 export function SearchClient({
   initialKeyword = '',
@@ -31,189 +39,240 @@ export function SearchClient({
   const [category, setCategory] = useState(initialCategory);
   const [radiusKm, setRadiusKm] = useState(initialRadiusKm);
   const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(
-    initialLatitude !== undefined && initialLongitude !== undefined ? { latitude: initialLatitude, longitude: initialLongitude } : null,
+    initialLatitude !== undefined && initialLongitude !== undefined
+      ? { latitude: initialLatitude, longitude: initialLongitude }
+      : null,
   );
+  const [categories, setCategories] = useState<CategoryOption[]>(fallbackCategories);
   const [items, setItems] = useState<SearchTenant[]>([]);
   const [error, setError] = useState('');
-  const [locationStatus, setLocationStatus] = useState(
-    initialLatitude !== undefined && initialLongitude !== undefined ? `Using location within ${initialRadiusKm} km.` : '',
-  );
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(initialSearched);
+  const [filtersOpen, setFiltersOpen] = useState(!initialSearched);
+  const [detecting, setDetecting] = useState(false);
 
-  async function runSearch(event?: FormEvent, overrideCoords = coords) {
-    event?.preventDefault();
+  useEffect(() => {
+    apiGet<CategoryOption[]>('/api/public/categories')
+      .then((result) => setCategories(result.length ? result : fallbackCategories))
+      .catch(() => setCategories(fallbackCategories));
+  }, []);
+
+  useEffect(() => {
+    if (initialSearched) void load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function parameters(overrides: { categorySlug?: string; radius?: number } = {}) {
+    const params = new URLSearchParams({ radiusKm: String(overrides.radius ?? radiusKm), take: '20' });
+    const nextCategory = overrides.categorySlug ?? category;
+    if (nextCategory) params.set('category', nextCategory);
+    if (keyword.trim()) params.set('keyword', keyword.trim());
+    if (coords) {
+      params.set('latitude', String(coords.latitude));
+      params.set('longitude', String(coords.longitude));
+    } else if (locality.trim()) {
+      params.set('locality', locality.trim());
+    }
+    return params;
+  }
+
+  async function load(overrides: { categorySlug?: string; radius?: number } = {}) {
     setHasSearched(true);
     setLoading(true);
     setError('');
-    const params = new URLSearchParams();
-    if (keyword) params.set('keyword', keyword);
-    if (category) params.set('category', category.toLowerCase());
-    params.set('radiusKm', String(radiusKm));
-    if (overrideCoords) {
-      params.set('latitude', String(overrideCoords.latitude));
-      params.set('longitude', String(overrideCoords.longitude));
-    } else if (locality) {
-      params.set('locality', locality);
-    }
-
     try {
-      const result = await apiGet<SearchResponse>(`/api/public/tenants?${params}`);
+      const result = await apiGet<SearchResponse>(`/api/public/tenants?${parameters(overrides)}`);
       setItems(result.items);
     } catch {
-      setError('Search is unavailable right now.');
+      setError('Search is unavailable right now. Please try again shortly.');
     } finally {
       setLoading(false);
     }
   }
 
+  function runSearch(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setFiltersOpen(false);
+    void load();
+  }
+
+  function chooseCategory(slug: string) {
+    setCategory(slug);
+    void load({ categorySlug: slug });
+  }
+
   function useCurrentLocation() {
-    setError('');
-    setLocationStatus('');
     if (!navigator.geolocation) {
       setError('Location is not available in this browser.');
       return;
     }
-
-    setLocationStatus('Getting your location...');
+    setDetecting(true);
     navigator.geolocation.getCurrentPosition(
       async (position) => {
-        const nextCoords = {
+        const next = {
           latitude: Number(position.coords.latitude.toFixed(6)),
           longitude: Number(position.coords.longitude.toFixed(6)),
         };
-        setCoords(nextCoords);
+        setCoords(next);
         try {
           const result = await apiGet<ReverseGeocodeResult>(
-            `/api/public/reverse-geocode?latitude=${nextCoords.latitude}&longitude=${nextCoords.longitude}`,
+            `/api/public/reverse-geocode?latitude=${next.latitude}&longitude=${next.longitude}`,
           );
           setLocality(result.city && result.city !== result.locality ? `${result.locality}, ${result.city}` : result.locality);
-          setLocationStatus(`Using ${result.locality} within ${radiusKm} km. Click Search to find tenants.`);
         } catch {
-          setLocationStatus(`Location ready. Click Search to find tenants within ${radiusKm} km.`);
+          setLocality('');
+        } finally {
+          setDetecting(false);
         }
       },
       () => {
-        setLocationStatus('');
+        setDetecting(false);
         setError('Location permission was denied. You can still search by locality.');
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 },
     );
   }
 
-  function clearCurrentLocation() {
-    setCoords(null);
-    setLocationStatus('');
-  }
-
-  function updateLocality(value: string) {
-    setLocality(value);
-    if (coords) {
-      setCoords(null);
-      setLocationStatus('Using typed locality. Click Search to find tenants.');
-    }
-  }
-
-  function selectLocality(suggestion: LocalitySuggestion) {
-    setLocality(suggestion.description);
-    setCoords({ latitude: suggestion.latitude, longitude: suggestion.longitude });
-    setLocationStatus(`Using ${suggestion.description} within ${radiusKm} km. Click Search to find tenants.`);
-  }
-
-  useEffect(() => {
-    if (initialSearched) void runSearch();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const placeLabel = locality.trim() || 'Pune';
 
   return (
-    <>
-      <form className="search-panel search-panel-page" onSubmit={runSearch}>
-        <label>
-          <span>What do you need?</span>
-          <div className="field">
-            <Search aria-hidden="true" size={18} />
-            <input value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="Search services or businesses" />
+    <main className="n-main">
+      <h1 className="n-sr">Search results</h1>
+
+      <div className="n-filter-bar">
+        <button type="button" className="n-locality-button" onClick={() => setFiltersOpen((open) => !open)}>
+          <MapPin aria-hidden="true" size={17} />
+          <div>
+            <strong>{placeLabel}</strong>
+            <small>{coords ? 'Using your current location' : 'Locality and filters'}</small>
           </div>
-        </label>
-        <label>
-          <span>Locality</span>
-          <div className="field">
-            <button type="button" className="field-icon-button" onClick={useCurrentLocation} aria-label="Use my location" title="Use my location">
-              <LocateFixed aria-hidden="true" size={18} />
-            </button>
-            <LocalityAutocomplete value={locality} onManualChange={updateLocality} onSelect={selectLocality} placeholder="Pimple Saudagar, Pune" />
-          </div>
-        </label>
-        <label>
-          <span>Category</span>
-          <div className="field">
-            <input value={category} onChange={(event) => setCategory(event.target.value)} placeholder="salon" />
-          </div>
-        </label>
-        <button type="submit">
-          <CalendarDays aria-hidden="true" size={18} />
-          Search
+          <ChevronDown aria-hidden="true" size={16} />
         </button>
-        <div className="nearby-controls">
-          {coords && (
-            <button type="button" className="link-button" onClick={clearCurrentLocation}>
-              Clear location
-            </button>
-          )}
-          <label>
-            <span>Radius</span>
-            <select value={radiusKm} onChange={(event) => setRadiusKm(Number(event.target.value))}>
-              <option value={5}>5 km</option>
-              <option value={10}>10 km</option>
-              <option value={25}>25 km</option>
-              <option value={50}>50 km</option>
-            </select>
-          </label>
-        </div>
-      </form>
-
-      {error && <Notice tone="error">{error}</Notice>}
-      {locationStatus && <Notice>{locationStatus}</Notice>}
-      {loading && <Notice>Searching...</Notice>}
-
-      <div className="result-list">
-        {items.map((tenant) => (
-          <a className="result-card" href={`/tenants/${tenant.slug}`} key={tenant.id}>
-            <div className="result-media" aria-hidden="true">
-              {tenant.logoUrl ? <img src={tenant.logoUrl} alt="" /> : <span>{tenant.name.slice(0, 1)}</span>}
-            </div>
-            <div>
-              <p className="eyebrow">{tenant.category?.name ?? 'Service'}</p>
-              <h2>{tenant.name}</h2>
-              <p>{tenant.description ?? 'Local appointment booking available.'}</p>
-              <p className="muted result-location">
-                <MapPin aria-hidden="true" size={15} />
-                {tenant.location ? `${tenant.location.locality}, ${tenant.location.city}` : 'Location coming soon'}
-              </p>
-              <div className="service-chips">
-                {tenant.services.slice(0, 3).map((service) => (
-                  <span key={service.id}>
-                    {service.name}
-                    <small>
-                      <Clock aria-hidden="true" size={12} />
-                      {service.durationMinutes} min
-                      {service.displayPriceAmount ? ` - ${service.displayPriceCurrency ?? 'INR'} ${service.displayPriceAmount}` : ''}
-                    </small>
-                  </span>
-                ))}
-              </div>
-            </div>
-            <div className="result-meta">
-              <span>{tenant.distanceKm === null ? 'Nearby' : `${tenant.distanceKm.toFixed(1)} km`}</span>
-              <Badge tone={tenant.availabilityState === 'availability_configured' ? 'active' : 'inactive'}>
-                {tenant.availabilityState === 'availability_configured' ? 'Slots available' : 'No slots'}
-              </Badge>
-              <span className="card-action">Book</span>
-            </div>
-          </a>
-        ))}
-        {!loading && hasSearched && items.length === 0 && <Notice>No matching tenants yet.</Notice>}
+        <button
+          type="button"
+          className="n-btn n-btn-secondary n-btn-sm"
+          onClick={() => setFiltersOpen((open) => !open)}
+          aria-expanded={filtersOpen}
+        >
+          {filtersOpen ? <X aria-hidden="true" size={16} /> : <SlidersHorizontal aria-hidden="true" size={16} />}
+          {filtersOpen ? 'Close' : 'Edit filters'}
+        </button>
       </div>
-    </>
+
+      {filtersOpen ? (
+        <form className="n-filter-panel n-mt" onSubmit={runSearch}>
+          <label className="n-field">
+            <span className="n-field-label">Locality</span>
+            <span className="n-input-wrap">
+              <MapPin className="n-input-icon" aria-hidden="true" size={18} />
+              <input
+                className="n-input n-input-has-action"
+                value={locality}
+                onChange={(event) => {
+                  setLocality(event.target.value);
+                  if (coords) setCoords(null);
+                }}
+                placeholder="Koregaon Park or Kalyani Nagar"
+                autoComplete="off"
+              />
+              <button
+                type="button"
+                className="n-input-action"
+                onClick={useCurrentLocation}
+                aria-label="Use my current location"
+              >
+                {detecting ? <LoaderCircle aria-hidden="true" size={17} /> : <LocateFixed aria-hidden="true" size={17} />}
+              </button>
+            </span>
+          </label>
+
+          <label className="n-field">
+            <span className="n-field-label">Service, practitioner or studio</span>
+            <span className="n-input-wrap">
+              <Search className="n-input-icon" aria-hidden="true" size={18} />
+              <input
+                className="n-input"
+                value={keyword}
+                onChange={(event) => setKeyword(event.target.value)}
+                placeholder="Deep tissue, Balayage, Physiotherapy"
+              />
+            </span>
+          </label>
+
+          <div className="n-field">
+            <span className="n-field-label">Search radius</span>
+            <div className="n-chip-row" role="group" aria-label="Search radius">
+              {[5, 10, 25, 50].map((radius) => (
+                <button
+                  type="button"
+                  className="n-chip"
+                  key={radius}
+                  aria-pressed={radiusKm === radius}
+                  onClick={() => {
+                    setRadiusKm(radius);
+                    void load({ radius });
+                  }}
+                >
+                  {radius} km
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <button type="submit" className="n-btn n-btn-block">
+            <Search aria-hidden="true" size={18} />
+            Show available slots
+          </button>
+        </form>
+      ) : null}
+
+      <div className="n-chip-row n-mt" role="group" aria-label="Category">
+        <button type="button" className="n-chip" aria-pressed={category === ''} onClick={() => chooseCategory('')}>
+          All modalities
+        </button>
+        {categories.map((item) => (
+          <button
+            type="button"
+            className="n-chip"
+            key={item.slug}
+            aria-pressed={category === item.slug}
+            onClick={() => chooseCategory(item.slug)}
+          >
+            {item.name}
+          </button>
+        ))}
+      </div>
+
+      {error ? (
+        <p className="n-note n-mt" data-tone="error">
+          {error}
+        </p>
+      ) : null}
+
+      {!filtersOpen ? (
+        <p className="n-result-count n-mt">
+          {loading ? 'Finding providers…' : (
+            <>
+              <strong className="n-tabular">{items.length}</strong>
+              {items.length === 1 ? ' provider' : ' providers'} in {placeLabel} · within {radiusKm} km
+            </>
+          )}
+        </p>
+      ) : null}
+
+      <div className="n-grid-providers n-mt">
+        {loading
+          ? [0, 1, 2].map((key) => <div className="n-skeleton" key={key} aria-hidden="true" />)
+          : items.map((tenant) => <ProviderCard tenant={tenant} cta="View services & book" key={tenant.id} />)}
+      </div>
+
+      {!loading && hasSearched && items.length === 0 && !error ? (
+        <div className="n-mt">
+          <EmptyState title="No providers matched this search">
+            <p className="n-body">Widen the radius, choose another category, or search a nearby locality.</p>
+          </EmptyState>
+        </div>
+      ) : null}
+    </main>
   );
 }

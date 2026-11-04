@@ -104,7 +104,7 @@ export class PlatformAdminService {
     if (dto.primaryCategoryId) {
       await this.findCategoryOrThrow(dto.primaryCategoryId);
     }
-
+    console.log(`Creating tenant: dto.name=${dto.name}, dto.slug=${dto.slug}, dto.bookingPrefix=${dto.bookingPrefix}, dto.primaryCategoryId=${dto.primaryCategoryId}, dto.timezone=${dto.timezone}, dto.description=${dto.description}, dto.publicEmail=${dto.publicEmail}, dto.publicPhone=${dto.publicPhone}`);
     const tenant = await this.prisma.tenant.create({
       data: {
         name: dto.name.trim(),

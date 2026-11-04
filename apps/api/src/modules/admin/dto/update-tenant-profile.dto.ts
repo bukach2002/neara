@@ -1,7 +1,25 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEmail, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsEmail, IsOptional, IsString, IsUUID, MaxLength, MinLength } from 'class-validator';
 
 export class UpdateTenantProfileDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  @MaxLength(120)
+  name?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  primaryCategoryId?: string;
+
+  @ApiPropertyOptional({ example: 'Asia/Kolkata' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  timezone?: string;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()

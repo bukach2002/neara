@@ -1,21 +1,14 @@
 import { Suspense } from 'react';
-import { PublicHeader } from '../components/PublicHeader';
+import { AppBar, AppShell } from '../components/neara/app-shell';
 import { RegisterClient } from './RegisterClient';
 
 export default function RegisterPage() {
   return (
-    <main className="page-shell">
-      <PublicHeader />
-      <section className="auth-page">
-        <div>
-          <p className="eyebrow">Customer registration</p>
-          <h1>Create your account</h1>
-          <p>Register with an email address, mobile number, or both.</p>
-        </div>
-        <Suspense fallback={null}>
-          <RegisterClient />
-        </Suspense>
-      </section>
-    </main>
+    <AppShell tabbar={false}>
+      <AppBar variant="back" title="Create account" profile={false} />
+      <Suspense fallback={<main className="n-main" />}>
+        <RegisterClient />
+      </Suspense>
+    </AppShell>
   );
 }
