@@ -143,6 +143,69 @@ const londonTenants: TenantSeed[] = [
   },
 ];
 
+// ── Vasai-Virar area tenant data generators ─────────────────
+const vasaiAreas: AreaDef[] = [
+  { locality: 'Vasai East', lat: 19.439, lng: 72.810, pincode: '401201' },
+  { locality: 'Vasai West', lat: 19.440, lng: 72.795, pincode: '401202' },
+  { locality: 'Nallasopara East', lat: 19.425, lng: 72.810, pincode: '401203' },
+  { locality: 'Nallasopara West', lat: 19.423, lng: 72.793, pincode: '401209' },
+  { locality: 'Navghar', lat: 19.450, lng: 72.815, pincode: '401201' },
+  { locality: 'Manikpur', lat: 19.435, lng: 72.800, pincode: '401201' },
+  { locality: 'Virar East', lat: 19.465, lng: 72.820, pincode: '401303' },
+  { locality: 'Virar West', lat: 19.462, lng: 72.795, pincode: '401305' },
+  { locality: 'Waliv', lat: 19.445, lng: 72.835, pincode: '401208' },
+  { locality: 'Agashi', lat: 19.470, lng: 72.785, pincode: '401301' },
+  { locality: 'Umela', lat: 19.450, lng: 72.795, pincode: '401202' },
+  { locality: 'Bolinj', lat: 19.420, lng: 72.815, pincode: '401203' },
+  { locality: 'Bhuigaon', lat: 19.410, lng: 72.800, pincode: '401202' },
+  { locality: 'Vaitarna', lat: 19.480, lng: 72.800, pincode: '401303' },
+  { locality: 'Arnala', lat: 19.490, lng: 72.770, pincode: '401302' },
+  { locality: 'Nirmal', lat: 19.415, lng: 72.825, pincode: '401203' },
+  { locality: 'Kaman', lat: 19.395, lng: 72.790, pincode: '401202' },
+];
+
+// Vasai-Virar business names
+const vasaiBusinessNames: string[] = [
+  'Rutu Beauty Salon', 'Mandar Hair Dresser', 'Sai Dham Beauty Parlour', 'Laxmi Hair & Beauty',
+  'Ganesh Barber & Style', 'Mangal Murti Saloon', 'Pratibha Beauty Lounge', 'Om Sai Unisex Salon',
+  'Shree Krupa Beauty Parlour', 'Aai Beauty Studio', 'Rajesh Cuts & Style', 'Sonal Beauty & Skin Care',
+  'Durga Hair Salon', 'Shiv Krupa Hair Dresser', 'Rasika Beauty Parlour', 'Sagar Barber Shop',
+  'Priyanka Beauty Lounge', 'Nana Nani Unisex Salon', 'Krishna Hair Cutting', 'Madhu Beauty Studio',
+  'Shubham Saloon & Spa', 'Swaroop Beauty Corner', 'Rani Beauty Parlour', 'Vaibhav Hair Dresser',
+  'Ankita Beauty & Wellness', 'Shree Ganesh Barber', 'Sneha Beauty Studio', 'Omkar Salon & Spa',
+  'Jai Mata Di Beauty Parlour', 'Urmila Hair & Beauty', 'Siddhivinayak Saloon', 'Avanti Unisex Salon',
+  'Reshma Beauty Lounge', 'Tukaram Barber Shop', 'Nirmal Hair Studio', 'Rupali Beauty Parlour',
+  'Gajanan Hair Cutting', 'Shivneri Beauty Salon', 'Komal Beauty & Style', 'Dhanashree Skin Clinic',
+  'Yogeshwari Beauty Lounge', 'Sai Samarth Barber', 'Aditi Beauty & Spa', 'Vikas Hair Dresser',
+  'Kirti Beauty Corner', 'Shraddha Unisex Salon', 'Prakash Barber Shop', 'Prerna Beauty Studio',
+  'Sourabh Hair Cutting', 'Devika Beauty & Wellness', 'Shanti Salon & Spa', 'Ramesh Barber & Stylist',
+  'Vaishali Beauty Parlour', 'Vishal Hair Studio', 'Rohini Beauty Lounge', 'Aditya Barber Shop',
+  'Gauri Beauty & Skin', 'Mahesh Hair Cutting', 'Samruddhi Beauty Salon', 'Sahara Unisex Salon',
+  'Bhakti Beauty Corner', 'Deepak Barber Shop', 'Suvarna Beauty Studio', 'Sagarika Beauty & Spa',
+  'Rushikesh Hair Style', 'Mayuri Beauty Parlour', 'Shree Sant Saloon', 'Pallavi Beauty & Wellness',
+  'Mandar Cuts & Style', 'Arpita Beauty Lounge', 'Shivshakti Barber', 'Supriya Unisex Salon',
+  'Sanket Hair Studio', 'Aishwarya Beauty & Style', 'Guru Kripa Barber', 'Vandana Beauty Salon',
+  'Akash Hair Cutting', 'Chandrika Beauty Lounge', 'Satyam Unisex Salon', 'Bhagyashree Beauty Studio',
+  'Akshay Barber & Style', 'Shweta Skin & Hair Clinic', 'Laxmi Narayan Saloon', 'Ananya Beauty Lounge',
+  'Sunil Hair Dresser', 'Nivedita Beauty Salon', 'Om Shanti Barber Shop', 'Sejal Beauty Studio',
+  'Parag Hair Cutting', 'Neelam Beauty Parlour', 'Mauli Saloon & Spa', 'Asmita Beauty Corner',
+  'Dattatreya Barber', 'Kajal Beauty Lounge', 'Sai Hair & Beauty', 'Pooja Beauty & Wellness',
+  'Vivek Hair Studio', 'Tanvi Unisex Salon', 'Shreedhar Barber Shop', 'Prachi Beauty & Style',
+  'Mrunal Beauty Lounge', 'Harish Hair Cutting', 'Sheetal Skin Care Clinic', 'Adwait Barber & Stylist',
+];
+
+const vasaiExpertFirst: string[] = [
+  'Rahul', 'Geeta', 'Pravin', 'Nisha', 'Dinesh', 'Sonali', 'Mahesh', 'Komal', 'Sandeep', 'Deepa',
+  'Vishal', 'Archana', 'Anil', 'Manisha', 'Sanjay', 'Varsha', 'Ravi', 'Swati', 'Nilesh', 'Pallavi',
+  'Girish', 'Smita', 'Harshad', 'Rupali', 'Milind', 'Aarti', 'Sachin', 'Bhavna', 'Yogesh', 'Hema',
+  'Vaibhav', 'Sujata', 'Amol', 'Madhuri', 'Prasad', 'Anita', 'Umesh', 'Prachi', 'Bhushan', 'Rekha',
+];
+
+const vasaiExpertLast: string[] = [
+  'Verma', 'Dubey', 'Kamat', 'Sawant', 'Pandey', 'Mhatre', 'Sutar', 'Bhoir', 'Chavan', 'Yeole',
+  'Keni', 'Gurav', 'Khaire', 'Palsekar', 'Savant', 'Tandel', 'Wadkar', 'Koli', 'Bacchav', 'Vartak',
+];
+
 // ── Pune-area tenant data generators ─────────────────────────
 type AreaDef = { locality: string; lat: number; lng: number; pincode: string };
 
@@ -292,8 +355,66 @@ function generatePuneTenants(): TenantSeed[] {
   return tenants;
 }
 
+function generateVasaiTenants(): TenantSeed[] {
+  const tenants: TenantSeed[] = [];
+
+  for (let i = 0; i < 100; i++) {
+    const area = vasaiAreas[i % vasaiAreas.length];
+    const name = vasaiBusinessNames[i];
+    const catSlug = i < 92 ? 'salon' : 'wellness';
+    const servicePool = catSlug === 'wellness' ? wellnessServices : saloonServices;
+    const numServices = 1 + ((i + 7) % 3);
+    const services = servicePool.slice((i + 3) % servicePool.length, ((i + 3) % servicePool.length) + numServices);
+    const numExperts = 1 + ((i + 5) % 2);
+    const experts = Array.from({ length: numExperts }, (_, ei) => ({
+      displayName: `${pick(vasaiExpertFirst, i * 13 + ei * 7)} ${pick(vasaiExpertLast, i * 11 + ei * 5)}`,
+      slug: slugify(`${pick(vasaiExpertFirst, i * 13 + ei * 7)} ${pick(vasaiExpertLast, i * 11 + ei * 5)}`),
+      shortBio: catSlug === 'salon'
+        ? `Professional stylist with ${(ei + 3 + ((i * 3) % 15))} years of experience in the Vasai-Virar region.`
+        : `Certified wellness professional with ${(ei + 2 + ((i * 5) % 12))} years in holistic therapy and care.`,
+    }));
+    const startH = 9 + ((i * 2) % 4);
+
+    tenants.push({
+      name,
+      slug: slugify(name) + '-v' + String(i + 1),
+      bookingPrefix: `V${String(i + 1).padStart(3, '0')}`,
+      categorySlug: catSlug,
+      description: `${name} — reliable ${catSlug === 'salon' ? 'salon and grooming' : 'wellness and therapy'} services in ${area.locality}, Vasai-Virar region.`,
+      timezone: 'Asia/Kolkata',
+      countryCode: 'IN',
+      location: {
+        name: `${area.locality} Studio`,
+        addressLine: `Shop ${(i % 50) + 1}, ${['Bazar Peth', 'Station Road', 'Achole Road', 'Agashi Road', 'Virar Highway', 'NH 48', 'Vasai Creek Road', 'Parnaka', 'Shivaji Path', 'Police Station Road'][i % 10]}`,
+        locality: area.locality,
+        city: ['Vasai', 'Vasai', 'Vasai', 'Vasai', 'Virar', 'Virar', 'Virar', 'Nallasopara', 'Nallasopara', 'Vasai'][i % 10],
+        state: 'Maharashtra',
+        postalCode: area.pincode,
+        latitude: (area.lat + ((i * 3) % 5) * 0.0015 - 0.003).toFixed(6),
+        longitude: (area.lng + ((i * 7) % 4) * 0.002 - 0.004).toFixed(6),
+      },
+      services: services.map((s) => ({
+        name: s.name,
+        slug: slugify(s.name) + '-v' + String(i + 1),
+        durationMinutes: s.dur,
+        price: s.price,
+        currency: 'INR',
+      })),
+      experts,
+      availability: [1, 2, 3, 4, 5, 6].map((d) => ({
+        dayOfWeek: d,
+        startLocalTime: `${startH}:00`,
+        endLocalTime: `${startH + 9}:00`,
+      })),
+    });
+  }
+
+  return tenants;
+}
+
 const puneTenants = generatePuneTenants();
-const allTenants = [...londonTenants, ...puneTenants];
+const vasaiTenants = generateVasaiTenants();
+const allTenants = [...londonTenants, ...puneTenants, ...vasaiTenants];
 
 async function upsertCategory(name: string, slug: string) {
   return prisma.category.upsert({
@@ -461,10 +582,11 @@ async function main() {
 
   const londonCount = londonTenants.length;
   const puneCount = puneTenants.length;
+  const vasaiCount = vasaiTenants.length;
   console.log('Seed complete');
   console.log(`Platform admin: platform.admin@neara.local / ChangeMe123!`);
   console.log(`Tenant admin: tenant.admin@neara.local / ChangeMe123!`);
-  console.log(`Seeded ${londonCount} London tenants + ${puneCount} Pune tenants = ${allTenants.length} total`);
+  console.log(`Seeded ${londonCount} London + ${puneCount} Pune + ${vasaiCount} Vasai-Virar = ${allTenants.length} total`);
 }
 
 main()

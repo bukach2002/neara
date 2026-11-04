@@ -315,7 +315,7 @@ app.use(
     },
     credentials: true,
     methods: ['GET', 'HEAD', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['content-type', 'x-request-id', 'authorization'],
+    allowedHeaders: ['content-type', 'x-request-id', 'x-csrf-token', 'authorization'],
     exposedHeaders: ['x-request-id'],
     optionsSuccessStatus: 204,
   }),

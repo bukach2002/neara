@@ -9,8 +9,7 @@ export function HomeScreen() {
       <PublicHeader />
       <section className="home-hero home-hero-focused">
         <div className="search-copy">
-          <h1>Find the right appointment near you</h1>
-          <p>Choose a category, confirm your locality, then search by business, service, or expert.</p>
+          <h1>Book your appointment</h1>          
         </div>
         <HomeSearchForm />
       </section>

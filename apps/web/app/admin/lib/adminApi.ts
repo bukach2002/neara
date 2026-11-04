@@ -10,6 +10,10 @@ function csrfToken() {
     ?.slice('XSRF-TOKEN='.length);
 }
 
+export function isUnauthorizedError(error: unknown) {
+  return error instanceof Error && (error as { status?: number }).status === 401;
+}
+
 export async function adminGet<T>(path: string): Promise<T> {
   const response = await apiFetch(path, { credentials: 'include' });
   return response.json() as Promise<T>;

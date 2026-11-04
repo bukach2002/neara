@@ -2,16 +2,28 @@
 
 import { ReactNode, useEffect, useState } from 'react';
 import { BarChart3, CalendarDays, Layers3, LogOut, ScrollText, Store } from 'lucide-react';
-import { adminGet, adminSend, AdminUser } from '../lib/adminApi';
+import { adminGet, adminSend, AdminUser, isUnauthorizedError } from '../lib/adminApi';
 import { BrandMark } from '../../components/ui';
 
 export function AdminShell({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AdminUser | null>(null);
+  const [sessionChecked, setSessionChecked] = useState(false);
 
   useEffect(() => {
     adminGet<{ user: AdminUser }>('/api/admin/auth/me')
-      .then((result) => setUser(result.user))
-      .catch(() => setUser(null));
+      .then((result) => {
+        setUser(result.user);
+        setSessionChecked(true);
+      })
+      .catch((error) => {
+        if (isUnauthorizedError(error)) {
+          // Session cookie is missing or expired; send the user to the admin sign-in page.
+          window.location.replace('/admin/login');
+          return;
+        }
+        setUser(null);
+        setSessionChecked(true);
+      });
   }, []);
 
   async function logout() {
@@ -38,7 +50,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
           Logout
         </button>
       </aside>
-      <section className="admin-content">{children}</section>
+      <section className="admin-content">{sessionChecked ? children : <p className="notice">Checking session...</p>}</section>
     </main>
   );
 }

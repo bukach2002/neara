@@ -156,7 +156,7 @@ Initial customer web routes:
 - `/tenants/:slug`: tenant detail, services, experts, slots, and booking form
 - `/booking-lookup`: reference plus phone booking lookup
 
-Client-side API calls use `NEXT_PUBLIC_API_APP_URL` when set, then `API_APP_URL`, then `http://localhost:4000`.
+Client-side API calls use relative `/api/...` paths. The web app rewrites `/api/:path*` to the API origin taken from `NEXT_PUBLIC_API_APP_URL`, then `API_APP_URL`, then `http://localhost:4000`, so session and CSRF cookies stay first-party in every environment.
 
 Environment files:
 
