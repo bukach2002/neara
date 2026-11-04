@@ -1,4 +1,4 @@
-import { PublicHeader } from '../components/PublicHeader';
+import { AppBar, AppShell } from '../components/neara/app-shell';
 import { SearchClient } from './SearchClient';
 
 export default function SearchPage({
@@ -19,13 +19,8 @@ export default function SearchPage({
   const longitude = Number(searchParams.longitude);
 
   return (
-    <main className="page-shell">
-      <PublicHeader />
-      <section className="page-heading">
-        <p className="eyebrow">Search</p>
-        <h1>Find your next appointment</h1>
-        <p>Search by service, category, business, or locality and choose from active local providers.</p>
-      </section>
+    <AppShell>
+      <AppBar />
       <SearchClient
         initialKeyword={searchParams.keyword ?? ''}
         initialLocality={searchParams.locality ?? ''}
@@ -35,6 +30,6 @@ export default function SearchPage({
         initialLongitude={Number.isFinite(longitude) ? longitude : undefined}
         initialSearched={searchParams.searched === '1'}
       />
-    </main>
+    </AppShell>
   );
 }

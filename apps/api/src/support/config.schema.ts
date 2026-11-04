@@ -40,6 +40,7 @@ export const appConfigSchema = z.object({
   RATE_LIMIT_CUSTOMER_LOGIN_PER_MINUTE: numberFromEnv(10),
   RATE_LIMIT_CUSTOMER_OTP_REQUEST_PER_HOUR: numberFromEnv(5),
   RATE_LIMIT_CUSTOMER_OTP_CONFIRM_PER_MINUTE: numberFromEnv(20),
+  RATE_LIMIT_TENANT_SIGNUP_PER_HOUR: numberFromEnv(20),
   RATE_LIMIT_WINDOW_SECONDS: numberFromEnv(60),
   CUSTOMER_SESSION_COOKIE_NAME: z.string().default('neara.customer.sid'),
 });

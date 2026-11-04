@@ -1,13 +1,25 @@
 'use client';
 
-import { LogIn, LogOut, Mail, Phone, Trash2, UserRound } from 'lucide-react';
+import {
+  ChevronRight,
+  Compass,
+  KeyRound,
+  LogOut,
+  Mail,
+  Phone,
+  ShieldCheck,
+  Ticket,
+  Trash2,
+} from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { apiDelete, apiGet, apiPost, CustomerUser } from '../lib/api';
-import { Notice } from '../components/ui';
+import { initials } from '../components/neara/format';
+import { Note, Pill } from '../components/neara/primitives';
 
 export function ProfileClient() {
   const [customer, setCustomer] = useState<CustomerUser | null>(null);
-  const [status, setStatus] = useState('Loading profile...');
+  const [status, setStatus] = useState('Loading your account…');
+  const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     apiGet<{ user: CustomerUser }>('/api/public/auth/me')
@@ -20,65 +32,129 @@ export function ProfileClient() {
       });
   }, []);
 
-  if (!customer) {
-    return <Notice>{status}</Notice>;
-  }
-
   async function logout() {
-    setStatus('Logging out...');
+    setBusy(true);
+    setStatus('Signing out…');
     await apiPost('/api/public/auth/logout', {}).catch(() => null);
     window.location.href = '/login';
   }
 
   async function deleteAccount() {
-    const confirmed = window.confirm('Delete your Neara account? Your login details will be removed and you will be signed out.');
+    const confirmed = window.confirm(
+      'Delete your Neara account? Your login details are removed and you are signed out. Contact the studio to change an existing appointment.',
+    );
     if (!confirmed) return;
-    setStatus('Deleting account...');
+    setBusy(true);
+    setStatus('Deleting account…');
     try {
       await apiDelete('/api/public/auth/me');
       window.location.href = '/';
     } catch {
-      setStatus('Could not delete account. Please try again.');
+      setStatus('We could not delete the account. Please try again.');
+      setBusy(false);
     }
   }
 
+  if (!customer) {
+    return (
+      <main className="n-main">
+        <Note>{status}</Note>
+      </main>
+    );
+  }
+
   return (
-    <>
-      <section className="profile-card">
-        <div className="profile-avatar" aria-hidden="true">
-          <UserRound size={34} />
-        </div>
-        <div>
-          <p className="eyebrow">Logged in</p>
-          <h2>{customer.name}</h2>
-          <div className="profile-details">
-            <span>
-              <Mail aria-hidden="true" size={17} />
-              {customer.email ?? 'No email saved'}
-            </span>
-            <span>
-              <Phone aria-hidden="true" size={17} />
-              {customer.mobileNumber ?? 'No mobile number saved'}
-            </span>
+    <main className="n-main">
+      <section className="n-profile-head" aria-labelledby="profile-name">
+        <span className="n-avatar-lg" aria-hidden="true">
+          {initials(customer.name)}
+        </span>
+        <div className="n-profile-identity">
+          <p className="n-eyebrow">Neara account</p>
+          <h1 id="profile-name">{customer.name}</h1>
+          <div className="n-profile-contact">
+            {customer.email ? (
+              <span>
+                <Mail aria-hidden="true" size={13} /> {customer.email}
+              </span>
+            ) : null}
+            {customer.mobileNumber ? (
+              <span>
+                <Phone aria-hidden="true" size={13} /> {customer.mobileNumber}
+              </span>
+            ) : null}
           </div>
-          <a className="button-link" href="/booking-lookup">
-            <LogIn aria-hidden="true" size={17} />
-            View bookings
-          </a>
+          <div>
+            <Pill dot>Signed in</Pill>
+          </div>
         </div>
       </section>
 
-      <section className="profile-actions" aria-label="Account actions">
-        <button type="button" onClick={logout}>
-          <LogOut aria-hidden="true" size={18} />
-          Logout
-        </button>
-        <button type="button" className="danger-action" onClick={deleteAccount}>
-          <Trash2 aria-hidden="true" size={18} />
-          Delete account
-        </button>
+      <section className="n-card n-mt-lg" aria-labelledby="profile-shortcuts">
+        <div className="n-card-pad">
+          <h2 id="profile-shortcuts" className="n-eyebrow">
+            Shortcuts
+          </h2>
+          <div className="n-shortcuts">
+            <a className="n-shortcut" href="/booking-lookup">
+              <span className="n-icon-tile" aria-hidden="true">
+                <Ticket size={18} />
+              </span>
+              <span className="n-shortcut-body">
+                <span className="n-shortcut-title">My appointments</span>
+                <span className="n-shortcut-sub">Find a booking by reference and phone</span>
+              </span>
+              <ChevronRight className="n-chevron" aria-hidden="true" size={18} />
+            </a>
+            <a className="n-shortcut" href="/forgot-password">
+              <span className="n-icon-tile" aria-hidden="true">
+                <KeyRound size={18} />
+              </span>
+              <span className="n-shortcut-body">
+                <span className="n-shortcut-title">Sign-in &amp; password</span>
+                <span className="n-shortcut-sub">Reset your password with a one-time code</span>
+              </span>
+              <ChevronRight className="n-chevron" aria-hidden="true" size={18} />
+            </a>
+            <a className="n-shortcut" href="/">
+              <span className="n-icon-tile" aria-hidden="true">
+                <Compass size={18} />
+              </span>
+              <span className="n-shortcut-body">
+                <span className="n-shortcut-title">Discover studios</span>
+                <span className="n-shortcut-sub">Salons, clinics, wellness and consulting in Pune</span>
+              </span>
+              <ChevronRight className="n-chevron" aria-hidden="true" size={18} />
+            </a>
+          </div>
+        </div>
       </section>
-      {status && <Notice tone={status.startsWith('Could') ? 'error' : 'neutral'}>{status}</Notice>}
-    </>
+
+      <section className="n-card n-mt-lg n-card-pad" aria-label="Account actions">
+        <p className="n-receipt-assurance">
+          <ShieldCheck aria-hidden="true" size={16} />
+          <span>
+            Neara keeps only the details needed to confirm and support appointments. Deleting your account
+            removes your login; existing studio records stay with the studio.
+          </span>
+        </p>
+        <div className="n-confirm-actions n-mt">
+          <button type="button" className="n-btn n-btn-secondary" onClick={logout} disabled={busy}>
+            <LogOut aria-hidden="true" size={17} />
+            Sign out
+          </button>
+          <button type="button" className="n-btn n-btn-danger" onClick={deleteAccount} disabled={busy}>
+            <Trash2 aria-hidden="true" size={17} />
+            Delete account
+          </button>
+        </div>
+        {status ? (
+          <div className="n-mt">
+            <Note tone={status.startsWith('We could not') ? 'error' : 'neutral'}>{status}</Note>
+          </div>
+        ) : null}
+      </section>
+
+    </main>
   );
 }

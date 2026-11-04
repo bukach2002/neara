@@ -52,6 +52,8 @@ import { LookupBookingQueryDto } from './modules/booking/dto/lookup-booking-quer
 import { HealthService } from './modules/health/health.service';
 import { NotificationService } from './modules/notification/notification.service';
 import { ClientEventDto } from './modules/observability/dto/client-event.dto';
+import { TenantSignupDto } from './modules/onboarding/dto/tenant-signup.dto';
+import { OnboardingService } from './modules/onboarding/onboarding.service';
 import { ObservabilityService } from './modules/observability/observability.service';
 import { requestIdFrom } from './modules/observability/request-id';
 import { StructuredLoggerService } from './modules/observability/structured-logger.service';
@@ -168,11 +170,13 @@ function defaultRateLimit(bucket: RateLimitBucket) {
       return 5;
     case 'CUSTOMER_OTP_CONFIRM':
       return 20;
+    case 'TENANT_SIGNUP':
+      return 20;
   }
 }
 
 function windowSecondsFor(config: ConfigService, bucket: RateLimitBucket) {
-  if (bucket === 'PASSWORD_RESET' || bucket === 'CUSTOMER_OTP_REQUEST') {
+  if (bucket === 'PASSWORD_RESET' || bucket === 'CUSTOMER_OTP_REQUEST' || bucket === 'TENANT_SIGNUP') {
     return 60 * 60;
   }
   return config.get<number>('RATE_LIMIT_WINDOW_SECONDS', 60);
@@ -280,6 +284,7 @@ const notifications = new NotificationService(config, prisma, logger);
 const csrf = new CsrfService(config);
 const auth = new AuthService(config, csrf, notifications, prisma);
 const customerAuth = new CustomerAuthService(config, notifications, prisma);
+const onboarding = new OnboardingService(audit, auth, prisma);
 const scheduling = new SchedulingService(prisma);
 const booking = new BookingService(audit, notifications, prisma, scheduling);
 const publicService = new PublicService(prisma, config);
@@ -384,6 +389,9 @@ api.post('/public/auth/logout', route((request, response) => customerAuth.logout
 api.get('/public/auth/me', route((request) => customerAuth.me(request)));
 api.delete('/public/auth/me', route((request, response) => customerAuth.deleteMe(request, response)));
 
+api.get('/public/tenant-slug/check', limit('TENANT_SIGNUP'), route((request) => onboarding.checkSlug(String(request.query.slug ?? ''))));
+api.post('/public/tenant-signup', limit('TENANT_SIGNUP'), route((request, response) => onboarding.signUp(validateDto(TenantSignupDto, request.body), response, sourceIp(request))));
+
 api.get('/public/meta', route(() => ({
   namespace: 'public',
   authentication: 'anonymous discovery, customer session required for slots and bookings',
@@ -455,6 +463,8 @@ api.get('/admin/tenant/meta', route(async (request) => {
 }));
 api.get('/admin/tenant/:tenantId/dashboard', tenantAuth((_authContext, request) => tenantAdmin.getDashboard(request.params.tenantId)));
 api.get('/admin/tenant/:tenantId/profile', tenantAuth((_authContext, request) => tenantAdmin.getProfile(request.params.tenantId)));
+api.get('/admin/tenant/:tenantId/onboarding', tenantAuth((_authContext, request) => onboarding.status(request.params.tenantId)));
+api.post('/admin/tenant/:tenantId/onboarding/complete', tenantAuth((authContext, request) => onboarding.complete(request.params.tenantId, authContext, sourceIp(request))));
 api.patch('/admin/tenant/:tenantId/profile', tenantAuth((authContext, request) => tenantAdmin.updateProfile(request.params.tenantId, validateDto(UpdateTenantProfileDto, request.body), authContext, sourceIp(request))));
 api.get('/admin/tenant/:tenantId/locations', tenantAuth((_authContext, request) => tenantAdmin.listLocations(request.params.tenantId)));
 api.post('/admin/tenant/:tenantId/locations/primary', tenantAuth((authContext, request) => tenantAdmin.upsertPrimaryLocation(request.params.tenantId, validateDto(UpsertLocationDto, request.body), authContext, sourceIp(request))));

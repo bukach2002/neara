@@ -1,16 +1,15 @@
-import { PublicHeader } from '../components/PublicHeader';
+import { AppBar, AppShell } from '../components/neara/app-shell';
 import { BookingLookupClient } from './BookingLookupClient';
 
-export default function BookingLookupPage() {
+export default function BookingLookupPage({
+  searchParams,
+}: {
+  searchParams: { reference?: string };
+}) {
   return (
-    <main className="page-shell">
-      <PublicHeader />
-      <section className="page-heading">
-        <p className="eyebrow">Bookings</p>
-        <h1>Find your booking</h1>
-        <p>Use your booking reference and phone number to view appointment details.</p>
-      </section>
-      <BookingLookupClient />
-    </main>
+    <AppShell>
+      <AppBar />
+      <BookingLookupClient initialReference={searchParams.reference ?? ''} />
+    </AppShell>
   );
 }

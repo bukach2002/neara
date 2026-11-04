@@ -1,20 +1,14 @@
 import { Suspense } from 'react';
-import { PublicHeader } from '../components/PublicHeader';
+import { AppBar, AppShell } from '../components/neara/app-shell';
 import { LoginClient } from './LoginClient';
 
 export default function LoginPage() {
   return (
-    <main className="page-shell auth-shell">
-      <PublicHeader />
-      <section className="auth-page home-hero-focused">
-        <div className="auth-heading">
-          <h1>Welcome Back</h1>
-          <p>Please enter your details to sign in and manage your bookings.</p>
-        </div>
-        <Suspense fallback={null}>
-          <LoginClient />
-        </Suspense>
-      </section>
-    </main>
+    <AppShell tabbar={false}>
+      <AppBar variant="back" title="Account" profile={false} />
+      <Suspense fallback={<main className="n-main" />}>
+        <LoginClient />
+      </Suspense>
+    </AppShell>
   );
 }

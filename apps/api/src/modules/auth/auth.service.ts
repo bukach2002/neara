@@ -70,6 +70,25 @@ export class AuthService {
     };
   }
 
+  /**
+   * Opens an admin-audience session for a user that was just created or verified elsewhere
+   * (for example tenant self signup) and sets the session + CSRF cookies.
+   */
+  async establishAdminSession(userId: string, response: Response) {
+    const sessionToken = this.createToken();
+    const expiresAt = new Date(Date.now() + THIRTY_DAYS_MS);
+
+    await this.prisma.session.create({
+      data: { userId, tokenHash: this.hashToken(sessionToken), audience: SessionAudience.admin, expiresAt },
+    });
+
+    const csrfToken = this.csrf.createToken(sessionToken);
+    this.setSessionCookie(response, sessionToken, expiresAt);
+    this.setCsrfCookie(response, csrfToken, expiresAt);
+
+    return { csrfToken, expiresAt };
+  }
+
   async logout(request: Request, response: Response) {
     const sessionToken = this.getCookie(request, this.sessionCookieName());
     if (sessionToken) {

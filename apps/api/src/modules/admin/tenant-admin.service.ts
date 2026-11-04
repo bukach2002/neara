@@ -51,9 +51,22 @@ export class TenantAdminService {
 
   async updateProfile(tenantId: string, dto: UpdateTenantProfileDto, auth: AuthContext, sourceIp?: string) {
     const before = await this.findTenantOrThrow(tenantId);
+    if (dto.primaryCategoryId) {
+      const category = await this.prisma.category.findFirst({
+        where: { id: dto.primaryCategoryId, isActive: true },
+        select: { id: true },
+      });
+      if (!category) {
+        throw new BadRequestException('Choose an active category');
+      }
+    }
+
     const tenant = await this.prisma.tenant.update({
       where: { id: tenantId },
       data: {
+        name: dto.name?.trim(),
+        primaryCategoryId: dto.primaryCategoryId,
+        timezone: dto.timezone?.trim(),
         description: dto.description?.trim(),
         publicEmail: dto.publicEmail?.trim().toLowerCase(),
         publicPhone: dto.publicPhone?.trim(),
