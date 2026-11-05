@@ -12,10 +12,12 @@ import { AppState } from 'react-native';
 import {
   deleteCustomerAccount,
   logoutRemote,
+  registerBusiness as registerBusinessRequest,
   registerCustomer,
   restoreSession,
   signIn as signInRequest,
 } from '@/api/auth';
+import type { BusinessSignupInput } from '@/api/onboarding';
 import { clearPreferences, readActiveTenantId, writeActiveTenantId } from '@/lib/preferences';
 import { clearSession } from '@/lib/session-store';
 import { onUnauthorized } from '@/lib/http';
@@ -47,6 +49,7 @@ type AuthContextValue = {
     mobileNumber?: string;
     password: string;
   }) => Promise<SessionRole>;
+  registerBusiness: (input: BusinessSignupInput) => Promise<SessionRole>;
   signOut: () => Promise<void>;
   deleteAccount: () => Promise<void>;
   refresh: () => Promise<void>;
@@ -167,6 +170,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [applySession],
   );
 
+  const registerBusiness = useCallback(
+    async (input: BusinessSignupInput) => {
+      const outcome = await registerBusinessRequest(input);
+      await applySession(outcome.role, outcome.user);
+      return outcome.role;
+    },
+    [applySession],
+  );
+
   const signOut = useCallback(async () => {
     if (state.status === 'authenticated') {
       // Best effort: local material is erased even if the API is unreachable.
@@ -247,6 +259,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       bootError: state.status === 'error' ? state.message : null,
       signIn,
       register,
+      registerBusiness,
       signOut,
       deleteAccount,
       refresh,
@@ -254,7 +267,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       selectTenant,
       goHome: (overrideRole) => homePathForRole(overrideRole ?? role ?? 'customer'),
     };
-  }, [state, memberships, signIn, register, signOut, deleteAccount, refresh, selectTenant]);
+  }, [state, memberships, signIn, register, registerBusiness, signOut, deleteAccount, refresh, selectTenant]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

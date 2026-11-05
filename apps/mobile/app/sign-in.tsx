@@ -14,6 +14,7 @@ import { BrandMark, Note } from '@/components/display';
 import { Button, PasswordField, TextField } from '@/components/controls';
 import { Card, Screen, ScreenScroll } from '@/components/layout';
 import { messageFor } from '@/lib/errors';
+import { openExternal, PRIVACY_URL, SUPPORT_URL, TERMS_URL } from '@/lib/links';
 import { colors, radius, spacing, typography } from '@/theme';
 
 export default function SignInScreen() {
@@ -56,7 +57,7 @@ export default function SignInScreen() {
           </View>
 
           <View style={styles.head}>
-            <Text style={styles.eyebrow}>One app, three workspaces</Text>
+            <Text style={styles.eyebrow}></Text>
             <Text style={styles.title}>Welcome back</Text>
             <Text style={styles.body}>
               Sign in with your customer, studio, or platform admin account. Neara opens the right
@@ -91,6 +92,16 @@ export default function SignInScreen() {
               </Link>
             </View>
 
+            <View style={styles.businessRow}>
+              <Ionicons name="storefront-outline" size={17} color={colors.teal} />
+              <Text style={styles.businessText}>Own a studio?</Text>
+              <Link href="/business-signup" asChild>
+                <Pressable accessibilityRole="link" hitSlop={8}>
+                  <Text style={styles.link}>List your business</Text>
+                </Pressable>
+              </Link>
+            </View>
+
             {error ? <Note tone="error">{error}</Note> : null}
           </Card>
 
@@ -102,16 +113,31 @@ export default function SignInScreen() {
             </Text>
           </View>
 
-          <View style={styles.roles}>
-            <RoleHint icon="compass-outline" title="Customers" body="Discover studios and book confirmed slots." />
-            <RoleHint icon="storefront-outline" title="Studio teams" body="Run today's bookings, services, and team." />
-            <RoleHint icon="shield-half-outline" title="Platform admins" body="Manage tenants, categories, and logs." />
+          <View style={styles.footerLinks}>
+            <Text
+              accessibilityRole="link"
+              style={styles.footerLink}
+              onPress={() => void openExternal(PRIVACY_URL)}
+            >
+              Privacy
+            </Text>
+            <Text style={styles.footerDot}>·</Text>
+            <Text
+              accessibilityRole="link"
+              style={styles.footerLink}
+              onPress={() => void openExternal(TERMS_URL)}
+            >
+              Terms
+            </Text>
+            <Text style={styles.footerDot}>·</Text>
+            <Text
+              accessibilityRole="link"
+              style={styles.footerLink}
+              onPress={() => void openExternal(SUPPORT_URL)}
+            >
+              Help
+            </Text>
           </View>
-
-          <Text style={styles.footnote}>
-            Studio and platform admins use their admin email here. Admin password resets are
-            completed in the Neara web console.
-          </Text>
         </ScreenScroll>
       </KeyboardAvoidingView>
     </Screen>
@@ -156,6 +182,16 @@ const styles = StyleSheet.create({
     paddingTop: spacing.xs,
   },
   link: { ...typography.smallStrong, color: colors.accent },
+  businessRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.line,
+  },
+  businessText: { ...typography.small, color: colors.muted },
   assurance: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -180,4 +216,14 @@ const styles = StyleSheet.create({
   roleTitle: { ...typography.bodyStrong, color: colors.ink },
   roleBody: { ...typography.small, color: colors.muted },
   footnote: { ...typography.small, color: colors.muted, fontSize: 12, paddingBottom: spacing.lg },
+  footerLinks: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    paddingBottom: spacing.lg,
+  },
+  footerLink: { ...typography.smallStrong, color: colors.accent },
+  footerDot: { ...typography.small, color: colors.lineStrong },
 });

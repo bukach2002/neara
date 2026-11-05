@@ -10,7 +10,7 @@
  * (ascAppId) is configured in eas.json under submit.production.ios.
  */
 import { spawn } from 'node:child_process';
-import { createWriteStream, mkdirSync } from 'node:fs';
+import { createWriteStream, mkdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -62,6 +62,67 @@ const log = createWriteStream(logPath, { flags: 'a' });
 
 const say = (message) => console.log(`\n==> ${message}`);
 
+const easConfig = JSON.parse(readFileSync(path.join(mobileDir, 'eas.json'), 'utf8'));
+const productionApiUrl = easConfig?.build?.[profile]?.env?.EXPO_PUBLIC_API_URL?.replace(
+  /\/+$/,
+  '',
+);
+
+/**
+ * Fails when the API baked into the build is unreachable, and reports dependency
+ * readiness. A red dependency does not block the build because some are optional,
+ * but it is printed so the build is not shipped against a half-configured backend.
+ */
+async function preflightApi() {
+  if (!productionApiUrl) {
+    console.log(`\n==> No EXPO_PUBLIC_API_URL in the ${profile} profile; skipping API preflight.`);
+    return;
+  }
+
+  console.log(`\n==> Checking ${productionApiUrl}`);
+
+  let health;
+  try {
+    const response = await fetch(`${productionApiUrl}/health`, {
+      signal: AbortSignal.timeout(10_000),
+    });
+    health = { status: response.status, body: await response.json().catch(() => null) };
+  } catch (error) {
+    fail(
+      `Cannot reach the production API at ${productionApiUrl}.\n` +
+        `Fix the deployment or EXPO_PUBLIC_API_URL in eas.json before shipping.\n${error.message}`,
+    );
+  }
+
+  if (health.status !== 200 || health.body?.ok !== true) {
+    fail(`${productionApiUrl}/health returned ${health.status}. Refusing to build against it.`);
+  }
+  console.log('    api: ok');
+
+  try {
+    const response = await fetch(`${productionApiUrl}/health/dependencies`, {
+      signal: AbortSignal.timeout(10_000),
+    });
+    const body = await response.json();
+    const dependencies = ['database', 'redis', 'email', 'storage'];
+    const notReady = dependencies.filter((name) => body?.[name]?.ok !== true);
+
+    for (const name of dependencies) {
+      const dependency = body?.[name];
+      const detail = dependency?.ok === true ? 'ok' : `NOT READY${dependency?.error ? ` (${dependency.error})` : ''}`;
+      console.log(`    ${name}: ${detail}`);
+    }
+
+    if (notReady.length > 0) {
+      console.log(
+        `\n    Warning: ${notReady.join(', ')} not ready. Rate limits, emails, or image uploads may fail.`,
+      );
+    }
+  } catch (error) {
+    console.log(`    Could not read dependency health: ${error.message}`);
+  }
+}
+
 /** Runs `npx eas-cli <args>`, streaming (and optionally capturing) its output. */
 function eas(args, { quiet = false, capture = false } = {}) {
   const command = ['npx', 'eas-cli', ...args].join(' ');
@@ -99,6 +160,8 @@ if (login.code !== 0) {
 }
 
 if (!buildId) {
+  await preflightApi();
+
   say(`Building iOS (profile: ${profile}). This takes a few minutes.`);
   const build = await eas([
     'build',

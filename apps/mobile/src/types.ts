@@ -1,4 +1,17 @@
 export type TenantStatus = 'draft' | 'active' | 'inactive' | 'suspended';
+export type SlugCheck = { slug: string; available: boolean; reason: string | null; suggestion?: string };
+
+export type TenantSignupResponse = {
+  tenant: {
+    id: string;
+    name: string;
+    slug: string;
+    bookingPrefix: string;
+    status: TenantStatus;
+  };
+  user: { id: string; name: string; email: string | null };
+  nextStep: string;
+};
 export type TenantRole = 'owner' | 'admin' | 'staff';
 export type BookingStatus = 'confirmed' | 'cancelled' | 'completed' | 'no_show';
 
@@ -243,6 +256,39 @@ export type TenantProfile = {
   publicEmail: string | null;
   publicPhone: string | null;
   primaryCategory: { id: string; name: string; slug: string } | null;
+};
+
+export type TenantLocation = {
+  id: string;
+  name: string;
+  addressLine: string;
+  locality: string;
+  city: string;
+  state: string | null;
+  postalCode: string | null;
+  latitude: string;
+  longitude: string;
+  isPrimary: boolean;
+  isActive: boolean;
+};
+
+export type GeocodeResult = {
+  formattedAddress: string;
+  latitude: number;
+  longitude: number;
+  locality?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  countryCode?: string;
+};
+
+export type AvailabilityRule = {
+  id: string;
+  dayOfWeek: number;
+  startLocalTime: string;
+  endLocalTime: string;
+  isActive: boolean;
 };
 
 export type TenantService = {

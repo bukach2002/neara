@@ -109,6 +109,13 @@ export default function TenantHomeScreen() {
         ) : null}
 
         <View style={styles.quickActions}>
+          {onboarding && !onboarding.isActive ? (
+            <Button
+              label={onboarding.ready ? 'Publish my studio' : 'Finish studio setup'}
+              icon="rocket-outline"
+              onPress={() => router.push('/(tenant)/setup')}
+            />
+          ) : null}
           <Button label="Open bookings" icon="calendar-outline" onPress={() => router.push('/(tenant)/bookings')} />
           <Button
             label="Manage studio"
@@ -124,7 +131,7 @@ export default function TenantHomeScreen() {
             subtitle={
               onboarding.isActive
                 ? 'Your studio is live to customers.'
-                : 'A platform admin can activate the studio once every item is complete.'
+                : 'Complete every item, then publish your studio from setup.'
             }
             action={
               <Badge
@@ -152,11 +159,19 @@ export default function TenantHomeScreen() {
             </View>
 
             {!onboarding.isActive ? (
-              <Note tone={onboarding.ready ? 'success' : 'warning'}>
-                {onboarding.ready
-                  ? 'Everything required is in place. Ask the Neara platform team to activate the studio.'
-                  : `Still missing: ${onboarding.missing.join('; ')}.`}
-              </Note>
+              <>
+                <Note tone={onboarding.ready ? 'success' : 'warning'}>
+                  {onboarding.ready
+                    ? 'Everything required is in place. Publish the studio to accept bookings.'
+                    : `Still missing: ${onboarding.missing.join('; ')}.`}
+                </Note>
+                <Button
+                  label="Open setup"
+                  variant="secondary"
+                  icon="list-outline"
+                  onPress={() => router.push('/(tenant)/setup')}
+                />
+              </>
             ) : null}
           </SectionCard>
         ) : null}

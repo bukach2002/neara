@@ -1,9 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { Alert, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { getProfile, listExperts, listServices, updateExpert, updateService } from '@/api/tenant';
 import { useAuth } from '@/auth/AuthProvider';
-import { SwitchRow } from '@/components/controls';
+import { Button, SwitchRow } from '@/components/controls';
 import { Badge, KeyValue, ListRow, Note } from '@/components/display';
 import {
   Card,
@@ -16,6 +16,14 @@ import {
   SectionCard,
 } from '@/components/layout';
 import { messageFor } from '@/lib/errors';
+import {
+  businessDeletionRequestUrl,
+  openExternal,
+  PRIVACY_URL,
+  SUPPORT_EMAIL,
+  SUPPORT_URL,
+  TERMS_URL,
+} from '@/lib/links';
 import { formatMoney, tenantStatusTone, titleCase } from '@/lib/format';
 import { useAsync } from '@/lib/useAsync';
 import { colors, spacing, typography } from '@/theme';
@@ -74,6 +82,31 @@ export default function StudioScreen() {
     }
   }
 
+  function requestAccountDeletion() {
+    const businessName = tenant?.tenant.name ?? 'Neara studio';
+    Alert.alert(
+      'Delete your business account?',
+      'This starts a deletion request with Neara support. The studio page is unpublished and the login removed within 7 days. Booking records are kept for accounting and legal requirements, so download anything you need first.',
+      [
+        { text: 'Keep account', style: 'cancel' },
+        {
+          text: 'Email request',
+          style: 'destructive',
+          onPress: () => {
+            setError(null);
+            void openExternal(
+              businessDeletionRequestUrl({ businessName, email: auth.user?.email }),
+            ).then((opened) => {
+              if (!opened) {
+                setError(`No mail app is available. Email ${SUPPORT_EMAIL} from your account address.`);
+              }
+            });
+          },
+        },
+      ],
+    );
+  }
+
   const profile = data.data?.profile;
   const services = data.data?.services ?? [];
   const experts = data.data?.experts ?? [];
@@ -114,8 +147,8 @@ export default function StudioScreen() {
             <KeyValue label="Public phone" value={profile.publicPhone} />
             <KeyValue label="Booking prefix" value={profile.bookingPrefix} />
             <Note tone="neutral">
-              Profile fields and locations are edited in the Neara web console. This app covers the
-              bookings and availability controls used day to day.
+              Profile fields and locations are edited in studio setup. This tab covers the bookings
+              and service controls used day to day.
             </Note>
           </SectionCard>
         ) : null}
@@ -125,7 +158,7 @@ export default function StudioScreen() {
             <EmptyState
               icon="pricetags-outline"
               title="No services yet"
-              body="Add a service from the web console before the studio can be activated."
+              body="Add a service in studio setup before the studio can be activated."
             />
           ) : (
             <View style={styles.list}>
@@ -172,7 +205,7 @@ export default function StudioScreen() {
             <EmptyState
               icon="people-outline"
               title="No experts yet"
-              body="Add an expert and assign services from the web console."
+              body="Add an expert in studio setup; new experts are assigned to your active services."
             />
           ) : (
             <View style={styles.list}>
@@ -204,6 +237,37 @@ export default function StudioScreen() {
               ))}
             </View>
           )}
+        </SectionCard>
+
+        <SectionCard title="Business account">
+          <ListRow
+            icon="shield-checkmark-outline"
+            title="Privacy policy"
+            subtitle="What Neara collects and how it is used"
+            onPress={() => void openExternal(PRIVACY_URL)}
+          />
+          <ListRow
+            icon="document-text-outline"
+            title="Terms of use"
+            subtitle="Rules for listing and booking on Neara"
+            onPress={() => void openExternal(TERMS_URL)}
+          />
+          <ListRow
+            icon="help-circle-outline"
+            title="Help and support"
+            subtitle={SUPPORT_EMAIL}
+            onPress={() => void openExternal(SUPPORT_URL)}
+          />
+          <Button
+            label="Delete business account"
+            variant="danger"
+            icon="trash-outline"
+            onPress={requestAccountDeletion}
+          />
+          <Note tone="neutral">
+            Business accounts are removed by Neara support so bookings, payouts, and staff records
+            can be settled first. Customer accounts can be deleted instantly in the customer app.
+          </Note>
         </SectionCard>
 
         <Card style={styles.securityNote}>

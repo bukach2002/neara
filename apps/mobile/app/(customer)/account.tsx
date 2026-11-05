@@ -7,6 +7,7 @@ import { Button } from '@/components/controls';
 import { Avatar, Badge, BrandMark, ListRow, Note } from '@/components/display';
 import { Card, Screen, ScreenScroll, SectionCard, SectionTitle } from '@/components/layout';
 import { messageFor } from '@/lib/errors';
+import { openExternal, PRIVACY_URL, SUPPORT_EMAIL, SUPPORT_URL, TERMS_URL } from '@/lib/links';
 import { colors, radius, spacing, typography } from '@/theme';
 
 export default function AccountScreen() {
@@ -94,6 +95,27 @@ export default function AccountScreen() {
             title="Password and sign-in"
             subtitle="Reset with a one-time email code"
             onPress={() => router.push('/forgot-password')}
+          />
+        </SectionCard>
+
+        <SectionCard title="Privacy and help">
+          <ListRow
+            icon="shield-checkmark-outline"
+            title="Privacy policy"
+            subtitle="What Neara collects and how it is used"
+            onPress={() => void openExternal(PRIVACY_URL)}
+          />
+          <ListRow
+            icon="document-text-outline"
+            title="Terms of use"
+            subtitle="Rules for using Neara"
+            onPress={() => void openExternal(TERMS_URL)}
+          />
+          <ListRow
+            icon="help-circle-outline"
+            title="Help and support"
+            subtitle={SUPPORT_EMAIL}
+            onPress={() => void openExternal(SUPPORT_URL)}
           />
         </SectionCard>
 

@@ -44,6 +44,7 @@ export default function TenantLayout() {
           }}
         />
         <Tabs.Screen name="bookings/[id]" options={{ href: null }} />
+        <Tabs.Screen name="setup" options={{ href: null }} />
       </Tabs>
     </RoleGate>
   );

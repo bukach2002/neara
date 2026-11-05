@@ -7,6 +7,7 @@ import type {
   SessionUser,
 } from '@/types';
 import { resolveAdminRole, type SessionRole } from '@/auth/roles';
+import { signUpBusiness, type BusinessSignupInput } from './onboarding';
 
 export type SignInOutcome = {
   role: SessionRole;
@@ -169,6 +170,37 @@ export async function restoreSession(): Promise<RestoreOutcome> {
     }
     throw error;
   }
+}
+
+/**
+ * Self-serve business registration. The signup route creates the tenant plus the
+ * owner account and opens an admin-audience session for that owner, so the
+ * session is re-read from the server exactly like an admin sign-in.
+ */
+export async function registerBusiness(input: BusinessSignupInput): Promise<SignInOutcome> {
+  await signUpBusiness(input);
+
+  let adminSession: AdminMeResponse;
+  try {
+    adminSession = await apiRequest<AdminMeResponse>('/admin/auth/me', { notifyUnauthorized: false });
+  } catch (error) {
+    await clearSession();
+    if (error instanceof ApiError) {
+      throw new ApiError(
+        error.status,
+        'Your business was created, but this device could not finish signing in. Sign in with your email and password.',
+      );
+    }
+    throw error;
+  }
+
+  const role = resolveAdminRole(adminSession.user);
+  if (!role) {
+    await clearSession();
+    throw new ApiError(403, 'Your business was created, but this account has no studio workspace yet.');
+  }
+
+  return { role, user: adminSession.user };
 }
 
 export function registerCustomer(input: {
