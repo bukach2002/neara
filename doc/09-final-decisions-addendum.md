@@ -22,11 +22,12 @@ Implementation rule:
 
 Final decision:
 
-- MVP email provider: **Mailtrap**.
+- MVP email provider: **Resend**.
 
 Implementation rule:
 
-- Use Mailtrap as the concrete email adapter for MVP.
+- Use Resend SMTP as the concrete email adapter for MVP.
+- Configure the API key as `RESEND_API_KEY` and use a sender address on a domain verified with Resend.
 - Keep the notification provider interface abstract enough to allow future replacement.
 
 ## 3. Rate Limits

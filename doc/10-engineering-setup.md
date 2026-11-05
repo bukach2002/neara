@@ -60,7 +60,7 @@ http://localhost:4000/api/docs
 Health endpoints:
 
 - `GET /api/health`: liveness
-- `GET /api/health/dependencies`: PostgreSQL, Redis, Mailtrap SMTP, and S3-compatible bucket readiness with bounded timeouts
+- `GET /api/health/dependencies`: PostgreSQL, Redis, Resend SMTP, and S3-compatible bucket readiness with bounded timeouts
 
 Operational observability:
 
@@ -222,7 +222,7 @@ Notification foundation:
 - Queue enqueue uses BullMQ with three attempts and exponential backoff.
 - If Redis enqueue fails, the notification log is marked `failed`; booking/cancellation still succeeds.
 - Redis transport errors are handled inside the notification queue path so booking requests are not failed or flooded by async Redis connection errors.
-- `NotificationService.processEmailNotification(logId)` contains the Mailtrap send/update behavior for the worker slice.
+- `NotificationService.processEmailNotification(logId)` contains the Resend SMTP send/update behavior for the worker slice.
 
 Notification worker commands:
 

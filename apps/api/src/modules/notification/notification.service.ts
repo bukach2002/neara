@@ -141,7 +141,7 @@ export class NotificationService {
         tenantId: input.tenantId ?? null,
         channel: NotificationChannel.email,
         templateKey: input.templateKey,
-        provider: 'mailtrap',
+        provider: 'resend',
         status: NotificationStatus.queued,
         recipientEmail: input.recipientEmail,
         recipientPhone: input.recipientPhone,
@@ -205,8 +205,9 @@ export class NotificationService {
       templateKey: log.templateKey,
     });
 
+    const mailer = this.mailer();
     try {
-      await this.mailer().sendMail({
+      await mailer.sendMail({
         from: this.config.get<string>('MAIL_FROM', 'no-reply@neara.local'),
         to: log.recipientEmail,
         subject: template.subject,
@@ -238,6 +239,8 @@ export class NotificationService {
         stack: error instanceof Error ? error.stack : undefined,
       });
       throw error;
+    } finally {
+      mailer.close();
     }
   }
 
@@ -250,12 +253,14 @@ export class NotificationService {
   }
 
   private mailer() {
+    const port = this.config.get<number>('RESEND_SMTP_PORT', 465);
     return nodemailer.createTransport({
-      host: this.config.get<string>('MAILTRAP_HOST', 'sandbox.smtp.mailtrap.io'),
-      port: this.config.get<number>('MAILTRAP_PORT', 2525),
+      host: this.config.get<string>('RESEND_SMTP_HOST', 'smtp.resend.com'),
+      port,
+      secure: port === 465,
       auth: {
-        user: this.config.get<string>('MAILTRAP_USERNAME', ''),
-        pass: this.config.get<string>('MAILTRAP_PASSWORD', ''),
+        user: 'resend',
+        pass: this.config.get<string>('RESEND_API_KEY', ''),
       },
     });
   }

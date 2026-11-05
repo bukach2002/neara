@@ -140,10 +140,10 @@ export function DiscoverScreen() {
         <div className="n-hero">
         <span className="n-hero-badge">
           <ShieldCheck aria-hidden="true" size={14} />
-          <span>Curated Pune directory</span>
+          <span>Curated local area directory</span>
         </span>
         <h1 className="n-display">Find your next appointment</h1>
-          <p className="n-body-lg">Discover trusted salons, clinics, wellness spaces and consultants in Pune.</p>
+          <p className="n-body-lg">Discover trusted salons, clinics, wellness spaces and consultants in your local area.</p>
         </div>
 
         <form className="n-search-card" onSubmit={submit}>
@@ -168,7 +168,7 @@ export function DiscoverScreen() {
         </div>
 
         <label className="n-field">
-          <span className="n-field-label">Locality in Pune</span>
+          <span className="n-field-label">Local area</span>
           <span className="n-input-wrap">
             <LocateFixed className="n-input-icon" aria-hidden="true" size={18} />
             <input

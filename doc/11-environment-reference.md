@@ -29,13 +29,12 @@ The root `.env.example` remains a local monorepo convenience template. Do not pu
 - `CSRF_SECRET`: long random secret for CSRF tokens if stored separately
 - `SESSION_COOKIE_NAME`: admin session cookie name
 
-## Mailtrap
+## Email (Resend)
 
-- `MAILTRAP_HOST`
-- `MAILTRAP_PORT`
-- `MAILTRAP_USERNAME`
-- `MAILTRAP_PASSWORD`
-- `MAIL_FROM`
+- `RESEND_SMTP_HOST`: Resend SMTP host; defaults to `smtp.resend.com`
+- `RESEND_SMTP_PORT`: Resend SMTP port; defaults to `465` (implicit TLS). Port `587` uses STARTTLS.
+- `RESEND_API_KEY`: Resend API key, used as the SMTP password; SMTP username is `resend`
+- `MAIL_FROM`: sender address on a domain verified with Resend, for example `"Neara <no-reply@your-domain.com>"`
 
 ## Google Maps
 
