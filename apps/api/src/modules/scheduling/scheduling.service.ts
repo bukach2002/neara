@@ -38,9 +38,14 @@ export class SchedulingService {
 
     const tenant = await this.prisma.tenant.findFirst({
       where: { slug: input.tenantSlug, status: TenantStatus.active, archivedAt: null },
-      include: {
+      // Slots are returned to any signed-in customer, so experts are projected
+      // down to published fields (never phone, email or internalMetadata).
+      select: {
+        id: true,
+        timezone: true,
         services: {
           where: { id: input.serviceId, isActive: true, isPublic: true, archivedAt: null },
+          select: { id: true, durationMinutes: true },
         },
         experts: {
           where: {
@@ -50,6 +55,7 @@ export class SchedulingService {
             expertServices: { some: { serviceId: input.serviceId, isActive: true } },
           },
           orderBy: { displayName: 'asc' },
+          select: { id: true, displayName: true, shortBio: true, photoUrl: true },
         },
       },
     });

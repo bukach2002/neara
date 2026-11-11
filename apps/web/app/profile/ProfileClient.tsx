@@ -8,12 +8,14 @@ import {
   Mail,
   Phone,
   ShieldCheck,
+  Smartphone,
   Ticket,
   Trash2,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { apiDelete, apiGet, apiPost, CustomerUser } from '../lib/api';
 import { initials } from '../components/neara/format';
+import { PhoneVerificationCard } from '../components/neara/phone-verification';
 import { Note, Pill } from '../components/neara/primitives';
 
 export function ProfileClient() {
@@ -21,7 +23,7 @@ export function ProfileClient() {
   const [status, setStatus] = useState('Loading your account…');
   const [busy, setBusy] = useState(false);
 
-  useEffect(() => {
+  const refreshCustomer = useCallback(() => {
     apiGet<{ user: CustomerUser }>('/api/public/auth/me')
       .then((result) => {
         setCustomer(result.user);
@@ -31,6 +33,10 @@ export function ProfileClient() {
         window.location.href = `/login?returnTo=${encodeURIComponent('/profile')}`;
       });
   }, []);
+
+  useEffect(() => {
+    refreshCustomer();
+  }, [refreshCustomer]);
 
   async function logout() {
     setBusy(true);
@@ -90,6 +96,30 @@ export function ProfileClient() {
         </div>
       </section>
 
+      <div className="n-mt-lg">
+        <PhoneVerificationCard
+          identifier={customer.mobileNumber}
+          verified={Boolean(customer.mobileVerified)}
+          onVerified={refreshCustomer}
+        />
+      </div>
+
+      <section className="n-card n-mt-lg n-card-pad" aria-labelledby="profile-mfa">
+        <h2 id="profile-mfa" className="n-eyebrow">
+          Two-factor authentication
+        </h2>
+        <p className="n-session-name">
+          <ShieldCheck aria-hidden="true" size={16} />
+          Authenticator app
+          {customer.mfaEnabled ? <Pill tone="teal">Enabled</Pill> : <Pill>Not enabled</Pill>}
+        </p>
+        <p className="n-session-meta">
+          {customer.mfaEnabled
+            ? 'Neara asks for your authenticator code when this account signs in to the admin console.'
+            : 'TOTP two-factor is available for platform and workspace admins in the admin console. Customer accounts are protected by one-time email sign-in codes and mobile verification.'}
+        </p>
+      </section>
+
       <section className="n-card n-mt-lg" aria-labelledby="profile-shortcuts">
         <div className="n-card-pad">
           <h2 id="profile-shortcuts" className="n-eyebrow">
@@ -103,6 +133,16 @@ export function ProfileClient() {
               <span className="n-shortcut-body">
                 <span className="n-shortcut-title">My appointments</span>
                 <span className="n-shortcut-sub">Find a booking by reference and phone</span>
+              </span>
+              <ChevronRight className="n-chevron" aria-hidden="true" size={18} />
+            </a>
+            <a className="n-shortcut" href="/profile/sessions">
+              <span className="n-icon-tile" aria-hidden="true">
+                <Smartphone size={18} />
+              </span>
+              <span className="n-shortcut-body">
+                <span className="n-shortcut-title">Devices &amp; sessions</span>
+                <span className="n-shortcut-sub">Review browsers and phones signed in to your account</span>
               </span>
               <ChevronRight className="n-chevron" aria-hidden="true" size={18} />
             </a>

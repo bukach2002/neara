@@ -1,22 +1,25 @@
-import {
-  cookieHeaderForUrl,
-  findCookieValue,
-  mergeSetCookies,
-  readSetCookieHeaders,
-  type StoredCookie,
-} from './cookies';
 import { deleteSecure, readSecureJson, writeSecureJson } from './secure-storage';
 
 /**
- * Session cookie jar.
+ * Bearer-token session store.
  *
- * The API issues httpOnly session cookies plus a readable XSRF cookie. Native
- * clients cannot rely on browser cookie persistence, so the jar is stored in the
- * OS keychain/keystore and replayed explicitly. Nothing here is ever logged.
+ * Tokens live in the OS keychain/keystore. Nothing here is ever logged, and the
+ * device identifier is a stable, non-secret handle used to bind the refresh
+ * family to this installation.
  */
-const STORAGE_KEY = 'neara.session.cookies.v1';
+export type SessionTokens = {
+  accessToken: string;
+  accessTokenExpiresAt: string;
+  refreshToken: string;
+  refreshTokenExpiresAt: string;
+  deviceId: string;
+};
 
-let jar: StoredCookie[] | null = null;
+const TOKENS_KEY = 'neara.session.tokens.v1';
+const DEVICE_KEY = 'neara.device.id.v1';
+const ACCESS_SKEW_MS = 30_000;
+
+let cachedTokens: SessionTokens | null | undefined;
 let writeQueue: Promise<unknown> = Promise.resolve();
 
 function serialize<T>(operation: () => Promise<T>): Promise<T> {
@@ -28,49 +31,72 @@ function serialize<T>(operation: () => Promise<T>): Promise<T> {
   return result;
 }
 
+function isUsable(isoTimestamp: string | undefined, now = Date.now()) {
+  const timestamp = isoTimestamp ? Date.parse(isoTimestamp) : Number.NaN;
+  return Number.isFinite(timestamp) && timestamp > now;
+}
+
 async function ensureLoaded() {
-  if (jar !== null) {
-    return jar;
+  if (cachedTokens !== undefined) {
+    return cachedTokens;
   }
-  const stored = await readSecureJson<StoredCookie[]>(STORAGE_KEY);
-  jar = Array.isArray(stored) ? stored : [];
-  return jar;
+  const stored = await readSecureJson<SessionTokens>(TOKENS_KEY);
+  cachedTokens = stored && typeof stored.refreshToken === 'string' ? stored : null;
+  return cachedTokens;
 }
 
-export async function getCookieHeader(url: string) {
-  const cookies = await ensureLoaded();
-  return cookieHeaderForUrl(cookies, url);
-}
-
-export async function getCookieValue(name: string) {
-  const cookies = await ensureLoaded();
-  return findCookieValue(cookies, name);
-}
-
-/** Persist cookies from a response. Returns false when the response set none. */
-export async function captureResponseCookies(response: Response, requestUrl: string) {
-  const setCookieHeaders = readSetCookieHeaders(response.headers);
-  if (setCookieHeaders.length === 0) {
-    return false;
+export async function readSessionTokens() {
+  const tokens = await ensureLoaded();
+  if (!tokens) {
+    return null;
   }
+  if (!isUsable(tokens.refreshTokenExpiresAt)) {
+    await clearSession();
+    return null;
+  }
+  return tokens;
+}
 
+export async function writeSessionTokens(tokens: SessionTokens) {
   return serialize(async () => {
-    const current = await ensureLoaded();
-    const next = mergeSetCookies(current, setCookieHeaders, requestUrl);
-    jar = next;
-    await writeSecureJson(STORAGE_KEY, next);
-    return true;
+    cachedTokens = tokens;
+    await writeSecureJson(TOKENS_KEY, tokens);
   });
 }
 
-export async function hasSessionCookies() {
-  const cookies = await ensureLoaded();
-  return cookies.length > 0;
+export async function clearSession() {
+  return serialize(async () => {
+    cachedTokens = null;
+    await deleteSecure(TOKENS_KEY);
+  });
 }
 
-export function clearSession() {
-  return serialize(async () => {
-    jar = [];
-    await deleteSecure(STORAGE_KEY);
-  });
+/** A short-lived access token, or null when it is missing or about to expire. */
+export async function getAccessToken() {
+  const tokens = await ensureLoaded();
+  if (!tokens || !isUsable(tokens.accessTokenExpiresAt, Date.now() + ACCESS_SKEW_MS)) {
+    return null;
+  }
+  return tokens.accessToken;
+}
+
+/** True while a refresh token exists that has not expired. */
+export async function hasSession() {
+  const tokens = await readSessionTokens();
+  return Boolean(tokens?.refreshToken);
+}
+
+/**
+ * Stable per-install device id. Not a secret: it binds a refresh family to this
+ * device so a copied token cannot be replayed from somewhere else.
+ */
+export async function getDeviceId() {
+  const existing = await readSecureJson<string>(DEVICE_KEY);
+  if (typeof existing === 'string' && existing.length > 0) {
+    return existing;
+  }
+
+  const deviceId = `dvc-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+  await writeSecureJson(DEVICE_KEY, deviceId);
+  return deviceId;
 }

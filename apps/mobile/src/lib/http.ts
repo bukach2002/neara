@@ -1,5 +1,6 @@
 import { API_URL, REQUEST_TIMEOUT_MS } from './config';
-import { captureResponseCookies, getCookieHeader, getCookieValue } from './session-store';
+import { getAccessToken, hasSession } from './session-store';
+import { refreshSession } from '@/auth/token-refresh';
 
 type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
 
@@ -8,6 +9,8 @@ export type ApiRequestOptions = {
   body?: unknown;
   /** Auth/bootstrap calls set this false so a normal 401 does not sign the user out. */
   notifyUnauthorized?: boolean;
+  /** Credential exchanges must never trigger an automatic refresh. */
+  skipRefresh?: boolean;
   timeoutMs?: number;
 };
 
@@ -15,12 +18,15 @@ export class ApiError extends Error {
   status: number;
   /** Safe, user-presentable message. Never contains request credentials. */
   safeMessage: string;
+  /** Parsed error response, when the API returned JSON. */
+  payload?: unknown;
 
-  constructor(status: number, safeMessage: string) {
+  constructor(status: number, safeMessage: string, payload?: unknown) {
     super(safeMessage);
     this.name = 'ApiError';
     this.status = status;
     this.safeMessage = safeMessage;
+    this.payload = payload;
   }
 
   get isNetworkError() {
@@ -110,87 +116,103 @@ async function parseResponseBody(response: Response): Promise<unknown> {
   }
 }
 
-/**
- * All API traffic goes through this function:
- * - session cookies are replayed from the encrypted jar
- * - the XSRF header is derived from the cookie the API issued
- * - timeouts are enforced
- * - 401s on session-bound calls trigger a single local sign-out
- * - request bodies (passwords, customer PII) are never logged
- */
-export async function apiRequest<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
+function fallbackMessage(status: number) {
+  if (status === 401) {
+    return 'Your session has expired. Sign in again.';
+  }
+  if (status === 403) {
+    return 'You do not have access to this area.';
+  }
+  if (status === 429) {
+    return 'Too many attempts. Wait a minute and try again.';
+  }
+  if (status >= 500) {
+    return 'Neara is having trouble right now. Try again shortly.';
+  }
+  return 'That request could not be completed.';
+}
+
+/** Credential endpoints never retry through the refresh flow. */
+function isCredentialPath(path: string) {
+  return (
+    path.startsWith('/mobile/auth/login') ||
+    path.startsWith('/mobile/auth/refresh') ||
+    path.startsWith('/mobile/auth/logout') ||
+    path.startsWith('/mobile/auth/password-reset')
+  );
+}
+
+async function send(path: string, options: ApiRequestOptions, accessToken: string | null) {
   const method = options.method ?? 'GET';
   const url = `${API_URL}${path.startsWith('/') ? path : `/${path}`}`;
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), options.timeoutMs ?? REQUEST_TIMEOUT_MS);
-  const requestId = createRequestId();
 
   const headers: Record<string, string> = {
     accept: 'application/json',
-    'x-request-id': requestId,
+    'x-request-id': createRequestId(),
   };
 
+  if (accessToken) {
+    headers.authorization = `Bearer ${accessToken}`;
+  }
+
+  let body: string | undefined;
+  if (options.body !== undefined) {
+    headers['content-type'] = 'application/json';
+    body = JSON.stringify(options.body);
+  }
+
   try {
-    const cookieHeader = await getCookieHeader(url);
-    if (cookieHeader) {
-      headers.cookie = cookieHeader;
+    return await fetch(url, {
+      method,
+      headers,
+      body,
+      signal: controller.signal,
+      // Native holds tokens explicitly; no platform cookie store is involved.
+      credentials: 'omit',
+      cache: 'no-store',
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new ApiError(0, 'Neara took too long to respond. Try again.');
     }
-
-    const csrfToken = await getCookieValue('XSRF-TOKEN');
-    if (csrfToken && method !== 'GET') {
-      headers['x-csrf-token'] = csrfToken;
-    }
-
-    let body: string | undefined;
-    if (options.body !== undefined) {
-      headers['content-type'] = 'application/json';
-      body = JSON.stringify(options.body);
-    }
-
-    let response: Response;
-    try {
-      response = await fetch(url, {
-        method,
-        headers,
-        body,
-        signal: controller.signal,
-        // Do not let a platform cookie store compete with our audited jar.
-        credentials: 'omit',
-        cache: 'no-store',
-      });
-    } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') {
-        throw new ApiError(0, 'Neara took too long to respond. Try again.');
-      }
-      throw new ApiError(0, 'Cannot reach Neara. Check your connection and try again.');
-    }
-
-    await captureResponseCookies(response, url);
-    const payload = await parseResponseBody(response);
-
-    if (!response.ok) {
-      const fallback =
-        response.status === 401
-          ? 'Your session has expired. Sign in again.'
-          : response.status === 403
-            ? 'You do not have access to this area.'
-            : response.status === 429
-              ? 'Too many attempts. Wait a minute and try again.'
-              : response.status >= 500
-                ? 'Neara is having trouble right now. Try again shortly.'
-                : 'That request could not be completed.';
-
-      if (response.status === 401 && options.notifyUnauthorized !== false) {
-        emitUnauthorized();
-      }
-
-      throw new ApiError(response.status, readMessage(payload, fallback));
-    }
-
-    return payload as T;
+    throw new ApiError(0, 'Cannot reach Neara. Check your connection and try again.');
   } finally {
     clearTimeout(timeout);
   }
+}
+
+/**
+ * All API traffic goes through this function:
+ * - the short-lived access token is attached as `Authorization: Bearer`
+ * - an expired access token is refreshed once per 401 and the request replayed
+ * - a rejected refresh signs the device out exactly once
+ * - request bodies (passwords, customer PII) are never logged
+ */
+export async function apiRequest<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
+  const accessToken = await getAccessToken();
+  let response = await send(path, options, accessToken);
+
+  if (response.status === 401 && !options.skipRefresh && !isCredentialPath(path) && (await hasSession())) {
+    const refreshed = await refreshSession();
+    if (refreshed.status === 'rotated') {
+      response = await send(path, options, refreshed.tokens.accessToken);
+    } else if (refreshed.status === 'unavailable') {
+      throw new ApiError(0, 'Cannot reach Neara. Check your connection and try again.');
+    }
+  }
+
+  const payload = await parseResponseBody(response);
+
+  if (!response.ok) {
+    if (response.status === 401 && options.notifyUnauthorized !== false) {
+      emitUnauthorized();
+    }
+    throw new ApiError(response.status, readMessage(payload, fallbackMessage(response.status)), payload);
+  }
+
+  return payload as T;
 }
 
 export function buildQuery(params: Record<string, string | number | boolean | null | undefined>) {

@@ -1,11 +1,7 @@
+import { Platform } from 'react-native';
 import { ApiError, apiRequest } from '@/lib/http';
-import { clearSession } from '@/lib/session-store';
-import type {
-  AdminLoginResponse,
-  AdminMeResponse,
-  CustomerAuthResponse,
-  SessionUser,
-} from '@/types';
+import { clearSession, getDeviceId, readSessionTokens, writeSessionTokens } from '@/lib/session-store';
+import type { MobileAuthResponse, SessionInfo, SessionListResponse, SessionUser } from '@/types';
 import { resolveAdminRole, type SessionRole } from '@/auth/roles';
 import { signUpBusiness, type BusinessSignupInput } from './onboarding';
 
@@ -19,153 +15,94 @@ export type RestoreOutcome = {
   user: SessionUser;
 } | null;
 
-function normalizeCustomer(user: CustomerAuthResponse['user']): SessionUser {
+const GENERIC_CREDENTIALS_ERROR = 'Those details did not match an account. Check and try again.';
+
+function deviceLabel() {
+  if (Platform.OS === 'ios') {
+    return 'iPhone';
+  }
+  if (Platform.OS === 'android') {
+    return 'Android device';
+  }
+  return 'Neara app';
+}
+
+function toSessionUser(user: MobileAuthResponse['user']): SessionUser {
   return {
     id: user.id,
     name: user.name,
     email: user.email,
     mobileNumber: user.mobileNumber,
-    platformRole: 'none',
-    memberships: [],
+    platformRole: user.platformRole,
+    mobileVerified: Boolean(user.mobileVerified),
+    memberships: user.memberships ?? [],
   };
 }
 
-const GENERIC_CREDENTIALS_ERROR = 'Those details did not match an account. Check and try again.';
+/** Server-resolved role; a user with no workspace is a customer. */
+export function roleForUser(user: SessionUser): SessionRole {
+  return resolveAdminRole(user) ?? 'customer';
+}
+
+async function persistTokens(payload: MobileAuthResponse, deviceId: string) {
+  await writeSessionTokens({
+    deviceId,
+    accessToken: payload.accessToken,
+    accessTokenExpiresAt: payload.accessTokenExpiresAt,
+    refreshToken: payload.refreshToken,
+    refreshTokenExpiresAt: payload.refreshTokenExpiresAt,
+  });
+}
 
 /**
- * The existing API has two separate login endpoints and two cookie audiences:
- *
- * - customers authenticate at /public/auth/login
- * - platform/tenant admins authenticate at /admin/auth/login
- *
- * A customer account cannot sign in through the customer endpoint if it also has
- * a membership, and any active user can sign in through the admin endpoint. So
- * the customer endpoint is tried first and the admin endpoint is only used after
- * a genuine 401 on an email identifier. An admin-audience session with no role
- * is discarded immediately.
- *
- * Backend follow-up (documented in doc/16-mobile-security-backend-actions.md):
- * replace this with one /api/mobile/auth/login that resolves the role after a
- * single password verification and returns audience-bound tokens.
+ * One request authenticates the user and resolves the role server-side, so the
+ * client no longer probes two cookie endpoints or keeps a role-less session.
  */
 export async function signIn(identifier: string, password: string): Promise<SignInOutcome> {
-  const trimmedIdentifier = identifier.trim();
-  const isEmail = trimmedIdentifier.includes('@');
+  const deviceId = await getDeviceId();
 
-  let customerCredentialsAccepted = false;
+  let payload: MobileAuthResponse;
   try {
-    await apiRequest<CustomerAuthResponse>('/public/auth/login', {
+    payload = await apiRequest<MobileAuthResponse>('/mobile/auth/login', {
       method: 'POST',
-      body: { identifier: trimmedIdentifier, password, trustDevice: true },
+      body: {
+        identifier: identifier.trim(),
+        password,
+        device: { id: deviceId, name: deviceLabel(), platform: Platform.OS },
+      },
       notifyUnauthorized: false,
-    });
-    customerCredentialsAccepted = true;
-  } catch (error) {
-    if (!(error instanceof ApiError)) {
-      throw error;
-    }
-    if (error.status === 401) {
-      // Genuine credential rejection: fall through to the admin endpoint below.
-    } else if (error.status === 403) {
-      throw new ApiError(403, 'This account is temporarily locked. Try again in a few minutes.');
-    } else {
-      throw error;
-    }
-  }
-
-  if (customerCredentialsAccepted) {
-    // Re-read the session from the server. This proves the session cookie was
-    // actually retained by this client before any role-specific UI is shown.
-    try {
-      const confirmed = await apiRequest<{ sessionId: string; user: CustomerAuthResponse['user'] }>(
-        '/public/auth/me',
-        { notifyUnauthorized: false },
-      );
-      return { role: 'customer', user: normalizeCustomer(confirmed.user) };
-    } catch (error) {
-      if (error instanceof ApiError && error.status === 401) {
-        await clearSession();
-        throw new ApiError(401, 'Sign-in could not be completed on this device. Please try again.');
-      }
-      throw error;
-    }
-  }
-
-  if (!isEmail) {
-    throw new ApiError(401, GENERIC_CREDENTIALS_ERROR);
-  }
-
-  // Continue with the admin endpoint for email identifiers.
-
-  try {
-    await apiRequest<AdminLoginResponse>('/admin/auth/login', {
-      method: 'POST',
-      body: { email: trimmedIdentifier, password },
-      notifyUnauthorized: false,
+      skipRefresh: true,
     });
   } catch (error) {
     if (error instanceof ApiError && error.status === 401) {
-      throw new ApiError(401, GENERIC_CREDENTIALS_ERROR);
-    }
-    if (error instanceof ApiError && error.status === 403) {
-      throw new ApiError(403, 'This account is temporarily locked. Try again in a few minutes.');
+      throw new ApiError(401, GENERIC_CREDENTIALS_ERROR, error.payload);
     }
     throw error;
   }
 
-  let adminSession: AdminMeResponse;
-  try {
-    adminSession = await apiRequest<AdminMeResponse>('/admin/auth/me', { notifyUnauthorized: false });
-  } catch (error) {
-    if (error instanceof ApiError && error.status === 401) {
-      await clearSession();
-      throw new ApiError(401, 'Sign-in could not be completed on this device. Please try again.');
-    }
-    throw error;
-  }
-
-  const role = resolveAdminRole(adminSession.user);
-  if (!role) {
-    // The admin endpoint accepts any active user. Never keep a session that has
-    // no admin role, even though the cookie is still valid for the customer app.
-    await logoutAdmin().catch(() => undefined);
-    await clearSession();
-    throw new ApiError(403, 'This account has no admin workspace. Use the customer sign-in instead.');
-  }
-
-  return { role, user: adminSession.user };
+  await persistTokens(payload, deviceId);
+  return { role: payload.role, user: toSessionUser(payload.user) };
 }
 
 /**
- * Restores a session from the encrypted cookie jar by asking the server who the
- * caller is. Customer audience is checked first because customers cannot have
- * memberships or a platform role.
+ * Restores the session from the keychain. The access token is refreshed when
+ * needed by the HTTP client; a rejected refresh clears local material.
  */
 export async function restoreSession(): Promise<RestoreOutcome> {
-  try {
-    const customer = await apiRequest<{ sessionId: string; user: CustomerAuthResponse['user'] }>(
-      '/public/auth/me',
-      { notifyUnauthorized: false },
-    );
-    return { role: 'customer', user: normalizeCustomer(customer.user) };
-  } catch (error) {
-    if (!(error instanceof ApiError)) {
-      throw error;
-    }
-    if (error.status !== 401) {
-      throw error;
-    }
+  const tokens = await readSessionTokens();
+  if (!tokens) {
+    return null;
   }
 
   try {
-    const admin = await apiRequest<AdminMeResponse>('/admin/auth/me', { notifyUnauthorized: false });
-    const role = resolveAdminRole(admin.user);
-    if (!role) {
-      return null;
-    }
-    return { role, user: admin.user };
+    const me = await apiRequest<{ sessionId: string; user: MobileAuthResponse['user'] }>('/mobile/auth/me', {
+      notifyUnauthorized: false,
+    });
+    const user = toSessionUser(me.user);
+    return { role: roleForUser(user), user };
   } catch (error) {
     if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
+      await clearSession();
       return null;
     }
     throw error;
@@ -173,54 +110,71 @@ export async function restoreSession(): Promise<RestoreOutcome> {
 }
 
 /**
- * Self-serve business registration. The signup route creates the tenant plus the
- * owner account and opens an admin-audience session for that owner, so the
- * session is re-read from the server exactly like an admin sign-in.
+ * Self-serve business registration. The signup route creates the tenant and the
+ * owner account; the bearer sign-in that follows verifies the password once and
+ * binds this device.
  */
 export async function registerBusiness(input: BusinessSignupInput): Promise<SignInOutcome> {
   await signUpBusiness(input);
-
-  let adminSession: AdminMeResponse;
-  try {
-    adminSession = await apiRequest<AdminMeResponse>('/admin/auth/me', { notifyUnauthorized: false });
-  } catch (error) {
-    await clearSession();
-    if (error instanceof ApiError) {
-      throw new ApiError(
-        error.status,
-        'Your business was created, but this device could not finish signing in. Sign in with your email and password.',
-      );
-    }
-    throw error;
-  }
-
-  const role = resolveAdminRole(adminSession.user);
-  if (!role) {
-    await clearSession();
-    throw new ApiError(403, 'Your business was created, but this account has no studio workspace yet.');
-  }
-
-  return { role, user: adminSession.user };
+  return signIn(input.email, input.password);
 }
 
-export function registerCustomer(input: {
+export async function registerCustomer(input: {
   name: string;
   email?: string;
   mobileNumber?: string;
   password: string;
-}): Promise<CustomerAuthResponse> {
-  return apiRequest<CustomerAuthResponse>('/public/auth/register', {
+}): Promise<SignInOutcome> {
+  const identifier = input.email?.trim() || input.mobileNumber?.trim();
+  if (!identifier) {
+    throw new ApiError(400, 'Enter an email address or mobile number.');
+  }
+
+  await apiRequest<{ user: { id: string } }>('/public/auth/register', {
     method: 'POST',
     body: { ...input, trustDevice: true },
     notifyUnauthorized: false,
+    skipRefresh: true,
+  });
+
+  return signIn(identifier, input.password);
+}
+
+export type VerificationChannel = 'sms' | 'whatsapp';
+
+/**
+ * Sends a 6-digit code to the number already on the account. The endpoint is
+ * public but answers `{ ok: true }` for any identifier, so it cannot be used to
+ * probe which numbers exist.
+ */
+export async function requestPhoneCode(identifier: string, channel: VerificationChannel) {
+  await apiRequest<{ ok: boolean }>('/public/auth/verify/phone/request', {
+    method: 'POST',
+    body: { identifier, channel },
+    notifyUnauthorized: false,
+    skipRefresh: true,
+  });
+}
+
+export async function confirmPhoneCode(input: {
+  identifier: string;
+  otp: string;
+  channel: VerificationChannel;
+}) {
+  await apiRequest<{ ok: boolean; verified: boolean }>('/public/auth/verify/phone/confirm', {
+    method: 'POST',
+    body: input,
+    notifyUnauthorized: false,
+    skipRefresh: true,
   });
 }
 
 export async function requestPasswordResetOtp(identifier: string) {
-  await apiRequest<{ ok: boolean }>('/public/auth/password-reset/request', {
+  await apiRequest<{ ok: boolean }>('/mobile/auth/password-reset/request', {
     method: 'POST',
-    body: { identifier: identifier.trim(), purpose: 'password_reset', channel: 'email' },
+    body: { identifier: identifier.trim() },
     notifyUnauthorized: false,
+    skipRefresh: true,
   });
 }
 
@@ -229,38 +183,57 @@ export async function confirmPasswordReset(input: {
   otp: string;
   newPassword: string;
 }) {
-  await apiRequest<{ ok: boolean }>('/public/auth/password-reset/confirm', {
+  await apiRequest<{ ok: boolean }>('/mobile/auth/password-reset/confirm', {
     method: 'POST',
     body: { ...input, identifier: input.identifier.trim() },
     notifyUnauthorized: false,
+    skipRefresh: true,
   });
 }
 
-async function logoutAdmin() {
-  await apiRequest<{ ok: boolean }>('/admin/auth/logout', {
-    method: 'POST',
-    notifyUnauthorized: false,
-  });
-}
-
-async function logoutCustomer() {
-  await apiRequest<{ ok: boolean }>('/public/auth/logout', {
-    method: 'POST',
-    notifyUnauthorized: false,
-  });
-}
-
-export async function logoutRemote(role: SessionRole) {
-  if (role === 'customer') {
-    await logoutCustomer();
-    return;
+/** Revokes this device's refresh family, then erases it locally. */
+export async function logoutRemote(_role?: SessionRole) {
+  const tokens = await readSessionTokens();
+  try {
+    if (tokens) {
+      await apiRequest<{ ok: boolean }>('/mobile/auth/logout', {
+        method: 'POST',
+        body: { refreshToken: tokens.refreshToken },
+        notifyUnauthorized: false,
+        skipRefresh: true,
+      });
+    }
+  } catch {
+    // Best effort: local material is erased even when the API is unreachable.
+  } finally {
+    await clearSession();
   }
-  await logoutAdmin();
+}
+
+/** Revokes every session and refresh family for this account. */
+export async function logoutAllRemote() {
+  await apiRequest<{ ok: boolean }>('/mobile/auth/logout-all', {
+    method: 'POST',
+    notifyUnauthorized: false,
+  });
+  await clearSession();
 }
 
 export async function deleteCustomerAccount() {
-  await apiRequest<{ ok: boolean }>('/public/auth/me', {
+  await apiRequest<{ ok: boolean }>('/mobile/auth/me', {
     method: 'DELETE',
     notifyUnauthorized: false,
+  });
+  await clearSession();
+}
+
+export async function listSessions(): Promise<SessionInfo[]> {
+  const response = await apiRequest<SessionListResponse>('/mobile/auth/sessions');
+  return response.items;
+}
+
+export async function revokeSession(sessionId: string) {
+  await apiRequest<{ ok: boolean }>(`/mobile/auth/sessions/${encodeURIComponent(sessionId)}`, {
+    method: 'DELETE',
   });
 }

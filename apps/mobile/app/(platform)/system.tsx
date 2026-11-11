@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { RefreshControl, StyleSheet, Text, View } from 'react-native';
 import {
@@ -46,6 +47,7 @@ function notificationTone(status: string): BadgeTone {
 
 export default function PlatformSystemScreen() {
   const auth = useAuth();
+  const router = useRouter();
   const [tab, setTab] = useState<Tab>('categories');
   const [busyCategory, setBusyCategory] = useState<string | null>(null);
   const [categoryError, setCategoryError] = useState<string | null>(null);
@@ -266,11 +268,17 @@ export default function PlatformSystemScreen() {
         ) : null}
 
         <SectionCard title="Signed in" subtitle={auth.user?.email ?? auth.user?.name}>
+          <ListRow
+            icon="phone-portrait-outline"
+            title="Devices and sessions"
+            subtitle="Review and revoke signed-in browsers and phones"
+            onPress={() => router.push('/sessions')}
+          />
           <View style={styles.sessionRow}>
             <Ionicons name="shield-checkmark-outline" size={18} color={colors.teal} />
             <Text style={styles.sessionText}>
-              Platform sessions use the same encrypted cookie jar as every other role. Signing out
-              revokes this device session and erases local material.
+              This device holds short-lived bearer tokens in the OS keystore. Signing out revokes
+              them on the server and erases local material.
             </Text>
           </View>
           <Button label="Sign out" variant="secondary" icon="log-out-outline" onPress={() => void auth.signOut()} />

@@ -18,8 +18,9 @@ export type BusinessSignupInput = {
 };
 
 /**
- * Creates the tenant and its owner account, and opens an admin-audience session
- * for that owner (the API sets the session and CSRF cookies on this response).
+ * Creates the tenant and its owner account. Any cookies on this response are
+ * ignored by the native app: the caller signs in through `/mobile/auth/login`
+ * to bind an admin-audience bearer token to this device.
  */
 export function signUpBusiness(input: BusinessSignupInput) {
   return apiRequest<TenantSignupResponse>('/public/tenant-signup', {

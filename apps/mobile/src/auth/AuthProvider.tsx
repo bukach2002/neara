@@ -11,6 +11,7 @@ import {
 import { AppState } from 'react-native';
 import {
   deleteCustomerAccount,
+  logoutAllRemote,
   logoutRemote,
   registerBusiness as registerBusinessRequest,
   registerCustomer,
@@ -51,6 +52,7 @@ type AuthContextValue = {
   }) => Promise<SessionRole>;
   registerBusiness: (input: BusinessSignupInput) => Promise<SessionRole>;
   signOut: () => Promise<void>;
+  signOutEverywhere: () => Promise<void>;
   deleteAccount: () => Promise<void>;
   refresh: () => Promise<void>;
   retryBootstrap: () => void;
@@ -155,17 +157,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const register = useCallback(
     async (input: { name: string; email?: string; mobileNumber?: string; password: string }) => {
-      const response = await registerCustomer(input);
-      const user: SessionUser = {
-        id: response.user.id,
-        name: response.user.name,
-        email: response.user.email,
-        mobileNumber: response.user.mobileNumber,
-        platformRole: 'none',
-        memberships: [],
-      };
-      await applySession('customer', user);
-      return 'customer' as const;
+      const outcome = await registerCustomer(input);
+      await applySession(outcome.role, outcome.user);
+      return outcome.role;
     },
     [applySession],
   );
@@ -188,6 +182,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await clearPreferences();
     setState({ status: 'anonymous' });
   }, [state]);
+
+  const signOutEverywhere = useCallback(async () => {
+    // Server first so a reachable API records the revocation, then local erase.
+    await logoutAllRemote().catch(() => undefined);
+    await clearSession();
+    await clearPreferences();
+    setState({ status: 'anonymous' });
+  }, []);
 
   const deleteAccount = useCallback(async () => {
     await deleteCustomerAccount();
@@ -261,13 +263,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       register,
       registerBusiness,
       signOut,
+      signOutEverywhere,
       deleteAccount,
       refresh,
       retryBootstrap: () => setBootstrapNonce((value) => value + 1),
       selectTenant,
       goHome: (overrideRole) => homePathForRole(overrideRole ?? role ?? 'customer'),
     };
-  }, [state, memberships, signIn, register, registerBusiness, signOut, deleteAccount, refresh, selectTenant]);
+  }, [state, memberships, signIn, register, registerBusiness, signOut, signOutEverywhere, deleteAccount, refresh, selectTenant]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

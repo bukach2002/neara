@@ -234,6 +234,12 @@ export default function TenantHomeScreen() {
           ) : (
             <Text style={styles.roleLine}>{titleCase(String(tenant.role))} access to this studio</Text>
           )}
+          <ListRow
+            icon="phone-portrait-outline"
+            title="Devices and sessions"
+            subtitle="Review and revoke signed-in browsers and phones"
+            onPress={() => router.push('/sessions')}
+          />
           <Button label="Sign out" variant="secondary" icon="log-out-outline" onPress={() => void auth.signOut()} />
         </SectionCard>
       </ScreenScroll>

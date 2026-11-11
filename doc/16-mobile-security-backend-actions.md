@@ -451,10 +451,8 @@ Expo Go cannot pin certificates.
 
 These are tracked here because they depend on backend decisions:
 
-1. **Cookie capture dependency.** `apps/mobile/src/lib/cookies.ts` reads `Set-Cookie` from
-   responses. React Native does not guarantee this header is exposed on every OS version. The app
-   verifies the session with `/me` immediately after login and fails clearly if the cookie was not
-   retained, but the production fix is the bearer/refresh contract in M-04.
+1. ~~**Cookie capture dependency.**~~ Resolved: the app now stores bearer/refresh tokens in
+   `expo-secure-store` and no longer reads `Set-Cookie` (`src/lib/cookies.ts` was deleted).
 2. **Certificate pinning, jailbreak/root detection, screenshot protection.** Not implemented in
    the Expo managed build. A custom dev client/config plugin is required before handling
    regulated data.
@@ -487,6 +485,144 @@ These are tracked here because they depend on backend decisions:
 
 - `cd apps/mobile && npx tsc --noEmit` — passes.
 - `cd apps/mobile && npx expo export --platform android` and `--platform ios` — production JS bundles build.
-- Session handling: manual cookie jar in `expo-secure-store`, session confirmation via `/me`
-  after login, forced local sign-out on any session-bound 401, foreground revalidation, and
-  HTTPS fail-closed in release builds.
+- Session handling: bearer/refresh tokens in `expo-secure-store`, single-flight refresh with one
+  request replay on a 401, forced local sign-out when the refresh token is rejected, foreground
+  revalidation, and HTTPS fail-closed in release builds.
+
+---
+
+## Resolution status (backend implementation, 2026-11-05)
+
+All backend findings are implemented on `feature-security-hardening`. Existing web, mobile and
+API flows were kept working: cookie sessions remain the web contract, the bearer surface is
+additive, and enforcement that could lock out existing accounts is behind explicit flags.
+
+| ID | Status | Where |
+| --- | --- | --- |
+| M-01 | Done | `modules/public/public.service.ts`, `modules/scheduling/scheduling.service.ts` — explicit `select` projections; contract test in `public.service.spec.ts` |
+| M-02 | Done | `modules/rate-limit/rate-limiter.ts` — keys on Express `request.ip` with `TRUST_PROXY_HOPS`; client XFF is never parsed |
+| M-03 | Done | `modules/auth/otp.service.ts` — CSPRNG codes, hashed at rest, attempt counter on every failure, purpose lock + notification, max live codes |
+| M-04 | Done | `modules/auth/mobile-auth.service.ts`, `/api/mobile/auth/*` (login, refresh, logout, logout-all, sessions, session revoke, me, account delete, password-reset); bearer tokens also accepted by the existing admin/customer guards |
+| M-05 | Done | CSRF + Origin/Sec-Fetch-Site on customer logouts, account deletion, booking creation, and all admin mutations |
+| M-06 | Done | `modules/booking/booking.service.ts` — owner-scoped lookups, masked guest responses, per-IP/per-reference/per-phone limits, failed-lookup audit |
+| M-07 | Done (flows flag-gated) | lockout + E.164/email normalisation + verification endpoints (email OTP, SMS/WhatsApp phone OTP); enforcement behind `AUTH_REQUIRE_*` |
+| M-08 | Done | TOTP MFA (`/admin/auth/mfa/*`), step-up freshness for suspend/inactivate/anonymize |
+| M-09 | Done | `modules/auth/session.service.ts` — idle + absolute expiry, rotation, cap, listing and revocation |
+| M-10 | Partially done | Login/lockout/OTP responses are generic; registration and tenant signup still return an explicit 409/409 (documented trade-off) |
+| M-11 | Done | service-layer `assertScope` on every `/admin/tenant/:tenantId/*` operation, not just route wrappers |
+| M-12 | Done | shared store required in production/staging; store errors fail closed with 503 |
+| M-13 | Done | Multer `limits` + `Content-Length` pre-check + magic-byte sniffing (stored type/extension derived from bytes) |
+| M-14 | Done | self-delete and platform anonymise erase snapshots, attempt logs, notification payloads, OTP/reset material, sessions and audit PII |
+| M-15 | Done | 8-character CSPRNG booking references; existing references remain resolvable |
+| M-16 | Done | `__Host-` + Secure + SameSite cookies, `no-store` on auth responses, ETag disabled |
+| M-17 | Done | platform booking list masked, detail view audited, tenant detail no longer returns user password hashes/MFA seeds, PII `console.log` removed |
+| M-18 | Done (API) | `support/security.ts` security headers incl. HSTS in production; certificate pinning remains a native build concern |
+
+### Session model
+
+- Admin cookie: 12h absolute, 30m idle, `SameSite=Strict`.
+- Customer cookie: 7d absolute, 24h idle (`SameSite=Lax`); trusted device 30d/7d.
+- Mobile bearer: 15-minute HS256 access token bound to `deviceId` + refresh family, rotating
+  30-day refresh tokens hashed at rest, reuse revoking the whole family.
+- Password reset, platform-created admin, tenant suspend/inactivate and anonymisation revoke
+  every session and refresh family for the affected user.
+
+### New/changed configuration
+
+`TRUST_PROXY_HOPS`, `COOKIE_SECURE_INSECURE_DEV`, `UPSTASH_REDIS_REST_URL`,
+`UPSTASH_REDIS_REST_TOKEN`, `RATE_LIMIT_REQUIRE_SHARED_STORE`, `ALLOW_IN_MEMORY_RATE_LIMIT`,
+`RATE_LIMIT_TENANT_SIGNUP_PER_HOUR`, `RATE_LIMIT_CLIENT_EVENTS_PER_MINUTE`,
+`RATE_LIMIT_MOBILE_AUTH_PER_MINUTE`, `RATE_LIMIT_MOBILE_REFRESH_PER_MINUTE`,
+`AUTH_ADMIN_SESSION_ABSOLUTE_HOURS`, `AUTH_ADMIN_SESSION_IDLE_MINUTES`,
+`AUTH_CUSTOMER_SESSION_ABSOLUTE_DAYS`, `AUTH_CUSTOMER_SESSION_IDLE_HOURS`,
+`AUTH_CUSTOMER_TRUSTED_ABSOLUTE_DAYS`, `AUTH_CUSTOMER_TRUSTED_IDLE_DAYS`,
+`AUTH_MAX_ACTIVE_SESSIONS`, `AUTH_LOCKOUT_THRESHOLD`, `AUTH_LOCKOUT_MINUTES`,
+`AUTH_OTP_MAX_ATTEMPTS`, `AUTH_OTP_MAX_ACTIVE`, `AUTH_ACCESS_TOKEN_MINUTES`,
+`AUTH_REFRESH_TOKEN_DAYS`, `AUTH_STEP_UP_MINUTES`, `AUTH_REQUIRE_PLATFORM_MFA`,
+`AUTH_REQUIRE_EMAIL_VERIFICATION`, `AUTH_REQUIRE_PHONE_VERIFICATION`, `SMS_PROVIDER`,
+`TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_SMS_FROM`, `TWILIO_WHATSAPP_FROM`.
+
+All are documented in `.env.example`. Defaults keep current behaviour; turn the
+`AUTH_REQUIRE_*` flags on once the verification/MFA flows have been exercised in production.
+
+### Verification run
+
+- `cd apps/api && npx prisma generate && npx tsc --noEmit` — passes.
+- `cd apps/api && npx jest` — 15 suites / 72 tests pass, including new tests for rotating-XFF
+  rate limiting, OTP lockout/channel scoping, Twilio delivery (SMS + WhatsApp, failure and
+  disabled-provider paths), mobile role/audience issuance, refresh reuse detection, booking
+  lookup masking/ownership, tenant scope rejection and the public response contract.
+- `cd apps/web && npx tsc --noEmit` — passes (client now sends `x-csrf-token` on mutations).
+- `cd apps/mobile && npx tsc --noEmit` — passes against the bearer client.
+- Migrations added: `20261105090000_security_hardening`, `20261105091000_sms_channel`.
+
+### Known residual risks / follow-ups
+
+1. **SMS sender registration.** Phone verification needs `SMS_PROVIDER=twilio` plus a verified
+   sender (and a WhatsApp template/sandbox join in production). Until then the endpoints answer
+   `503` rather than pretending to send, so `AUTH_REQUIRE_PHONE_VERIFICATION` stays off.
+2. **Verification enforcement.** Both channels are wired; email and phone verification endpoints
+   exist and enforce generic responses. The `AUTH_REQUIRE_*` flags stay off by default so
+   existing accounts are not locked out, and `AUTH_REQUIRE_PLATFORM_MFA` remains off for the same
+   reason.
+3. **Enumeration trade-off.** Registration and tenant signup still answer `409` on duplicate
+   identifiers because the UX depends on it; both are rate limited. Login, OTP, reset and mobile
+   auth are generic.
+4. **Platform-admin PII.** Support staff can still read a single booking's contact details; that
+   access is now audited (`booking.detail.view`). Retention policy for that audit trail is an
+   operational decision.
+5. **Certificate pinning, WAF, edge TLS 1.2+** remain deployment/native-build items (M-18).
+
+### Client migration, SMS channel and session screens (2026-11-05)
+
+**Mobile bearer migration.** `apps/mobile` no longer uses cookies:
+
+- `src/lib/session-store.ts` keeps access/refresh tokens, expiry and device metadata in
+  `expo-secure-store`; `src/lib/http.ts` attaches `Authorization: Bearer`, refreshes once on a 401
+  through `src/auth/token-refresh.ts`, replays the request, and signs out locally if the refresh is
+  rejected. `src/lib/cookies.ts` is gone.
+- `src/api/auth.ts` uses `/api/mobile/auth/{login,refresh,logout,logout-all,sessions,me}`.
+  Registration keeps `POST /public/auth/register` (its cookies are ignored) and then calls
+  `/mobile/auth/login` once, so the password is verified exactly once.
+- Account deletion is `DELETE /api/mobile/auth/me`, which reuses `CustomerAuthService.eraseForUser`.
+- The API side accepts these tokens in the **existing** `requireAdminContext` /
+  `requireCustomerContext` guards: an `Authorization: Bearer` request is resolved by
+  `MobileAuthService.requireContext` with the route's allowed audiences, and CSRF is skipped only
+  for that path (cookie requests still require it). No data route was duplicated under
+  `/api/mobile`.
+
+**SMS / WhatsApp OTP.** `modules/notification/sms.service.ts` posts directly to the Twilio REST
+API with `fetch` (no SDK): SMS uses `TWILIO_SMS_FROM`, WhatsApp prefixes both numbers with
+`whatsapp:` and uses `TWILIO_WHATSAPP_FROM`. `OtpService` is now channel-aware — a code is bound
+to the channel it was issued for, so an SMS code cannot be replayed as an email code — and
+`NotificationChannel.sms` records the delivery. New endpoints:
+
+- `POST /api/public/auth/verify/phone/request` — `{ identifier, channel: 'sms' | 'whatsapp' }`.
+- `POST /api/public/auth/verify/phone/confirm` — `{ identifier, otp, channel }`, sets
+  `mobileVerifiedAt` and is what `AUTH_REQUIRE_PHONE_VERIFICATION` checks at login.
+- `POST /api/public/auth/otp/request` and the login confirm endpoint accept an optional `channel`.
+- Both phone endpoints answer `{ ok: true }` for unknown identifiers and are rate limited per IP
+  and per identifier.
+- `user` payloads now expose `mobileVerified` (mobile bearer and cookie surfaces) plus
+  `emailVerified`/`mfaEnabled` on the customer cookie surface, so clients can show state instead of
+  guessing.
+
+**Session management.** `GET/DELETE /api/{admin,public}/auth/sessions` already existed; the apps
+now surface them:
+
+- Web customer: `/profile/sessions` (`app/profile/sessions/page.tsx`) and a profile shortcut.
+- Web admin: `/admin/platform/sessions` with a sidebar entry.
+- Mobile: `/sessions` screen, linked from the customer account, tenant home and platform system
+  screens, with per-device revoke and "sign out everywhere" (`signOutEverywhere`).
+- The list merges cookie sessions and native refresh families, so revoking a phone from the web
+  takes effect on its next request.
+
+**Verification screens.**
+
+- Mobile: `/verify-phone` (linked from the customer account) sends a code over SMS or WhatsApp to the
+  number on the account, confirms it with a 30-second resend cooldown, and refreshes the session so
+  the account shows `Verified`.
+- Web: the customer profile shows a mobile-verification card with the same flow, and an MFA status
+  card. Customer accounts cannot enroll TOTP — that remains an admin-console capability — so the
+  card reports status and explains the alternatives rather than offering a toggle that would not
+  work.

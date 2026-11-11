@@ -1,5 +1,5 @@
-import { BadRequestException } from '@nestjs/common';
-import { BookingStatus, PlatformRole } from '@prisma/client';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
+import { BookingStatus, PlatformRole, TenantRole, TenantStatus } from '@prisma/client';
 import { TenantAdminService } from './tenant-admin.service';
 
 function setup(apiKey = 'maps-key') {
@@ -21,13 +21,22 @@ function setup(apiKey = 'maps-key') {
 
 const auth = {
   sessionId: 'session-1',
+  authenticatedAt: new Date('2026-05-18T09:00:00Z'),
   user: {
     id: 'tenant-user-1',
     email: 'tenant.admin@neara.local',
     mobileNumber: null,
     name: 'Tenant Admin',
     platformRole: PlatformRole.none,
-    memberships: [],
+    mfaEnabled: false,
+    mobileVerified: false,
+    memberships: [
+      {
+        tenantId: 'tenant-1',
+        role: TenantRole.owner,
+        tenant: { id: 'tenant-1', name: 'Tenant One', slug: 'tenant-one', status: TenantStatus.active },
+      },
+    ],
   },
 };
 
@@ -72,7 +81,7 @@ describe('TenantAdminService geocoding', () => {
       }),
     } as never);
 
-    await expect(service.geocodeLocation('tenant-1', '12 MG Road Bengaluru')).resolves.toEqual({
+    await expect(service.geocodeLocation('tenant-1', '12 MG Road Bengaluru', auth)).resolves.toEqual({
       formattedAddress: '12 MG Road, Bengaluru, Karnataka 560001, India',
       latitude: 12.9716,
       longitude: 77.5946,
@@ -87,7 +96,7 @@ describe('TenantAdminService geocoding', () => {
   it('rejects geocoding when Google Maps is not configured', async () => {
     const { service } = setup('');
 
-    await expect(service.geocodeLocation('tenant-1', '12 MG Road Bengaluru')).rejects.toBeInstanceOf(BadRequestException);
+    await expect(service.geocodeLocation('tenant-1', '12 MG Road Bengaluru', auth)).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('cancels confirmed bookings with audit and customer notification', async () => {
@@ -121,6 +130,13 @@ describe('TenantAdminService geocoding', () => {
       expertName: 'Maya Patel',
       displayTime: 'Tue, 19 May 2026, 10:00 AM GMT+1',
     });
+  });
+
+  it('rejects tenant access for a tenant the caller does not belong to', async () => {
+    const { service } = setup();
+
+    expect(() => service.getProfile('tenant-2', auth)).toThrow(ForbiddenException);
+    await expect(service.listBookings('tenant-2', {}, auth)).rejects.toBeInstanceOf(ForbiddenException);
   });
 
   it('rejects cancelling bookings outside the confirmed state', async () => {

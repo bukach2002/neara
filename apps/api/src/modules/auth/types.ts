@@ -8,6 +8,8 @@ export type AuthenticatedUser = {
   mobileNumber: string | null;
   name: string;
   platformRole: PlatformRole;
+  mfaEnabled: boolean;
+  mobileVerified: boolean;
   memberships: Array<{
     tenantId: string;
     role: TenantRole;
@@ -22,8 +24,20 @@ export type AuthenticatedUser = {
 
 export type AuthContext = {
   sessionId: string;
+  /** When this session started authenticating (used for step-up freshness). */
+  authenticatedAt: Date;
   user: AuthenticatedUser;
 };
+
+export function hasTenantRole(
+  context: AuthContext,
+  tenantId: string,
+  allowedRoles: TenantRole[] = [TenantRole.owner, TenantRole.admin, TenantRole.staff],
+) {
+  return context.user.memberships.some(
+    (membership) => membership.tenantId === tenantId && allowedRoles.includes(membership.role),
+  );
+}
 
 declare module 'express-serve-static-core' {
   interface Request {

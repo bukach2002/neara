@@ -45,14 +45,29 @@ grievance contact, and retention wording before publishing.
 
 App Review must be able to sign in and complete the core flow without contacting you.
 
-Create these on the **production** API (not staging), using addresses you control:
+Create these on the **production** API (not staging) with the idempotent demo seed. It never
+deletes data and is safe to re-run — every row is matched by its natural key and updated:
+
+```bash
+DEMO_STUDIO_EMAIL=owner@your-demo-domain \
+DEMO_STUDIO_PASSWORD='<12+ chars, letter and number>' \
+DEMO_CUSTOMER_EMAIL=customer@your-demo-domain \
+DEMO_CUSTOMER_PASSWORD='<12+ chars, letter and number>' \
+  npm --workspace apps/api run db:seed:demo
+```
+
+It creates the Salon category, an active studio in Baner, Pune with 3 services, 2 experts, 7-day
+availability, the owner membership, and both logins. Optional overrides: `DEMO_STUDIO_NAME`,
+`DEMO_STUDIO_SLUG`, `DEMO_BOOKING_PREFIX`, `DEMO_STUDIO_PHONE`. See `prisma/demo.seed.ts`.
+
+| Role | Purpose | Requirements |
 
 | Role | Purpose | Requirements |
 |---|---|---|
 | Customer demo | Browse, book, view appointments, delete account | Verified email, at least one booking possible |
 | Studio owner demo | Studio dashboard, bookings, studio settings | Active tenant with category, primary location, at least 2 services, 2 experts, availability rules, and a public page |
 
-Setup steps:
+Manual alternative if the seed cannot reach the environment:
 
 1. Register the customer through the app (`/register`) and complete one booking on the demo studio.
 2. Register the studio through `/business-signup`, then finish Studio → Setup: profile, primary
@@ -174,7 +189,7 @@ App record `6831122783`, version `1.0.0`:
 
 - [ ] Build attached and finished processing (watch for Apple emails about icons or privacy
       manifests).
-- [ ] Screenshots: 6.9" iPhone (required). No iPad set while `supportsTablet` is false.
+- [ ] Screenshots: see "Screenshots" below. No iPad set while `supportsTablet` is false.
 - [ ] Description, keywords, promotional text, support URL, privacy policy URL.
 - [ ] Category: Lifestyle (primary), Business (secondary).
 - [ ] Age rating: 4+ (no unrestricted web access, no user-generated public content beyond studio
@@ -188,6 +203,32 @@ App record `6831122783`, version `1.0.0`:
 - [ ] Review notes (below).
 - [ ] Version release: **manually release** after approval.
 - [ ] Submit for review.
+
+## Screenshots
+
+Apple requires at least one iPhone screenshot for the Dynamic Island display class; 6.9" images are
+accepted and scaled down for smaller phones. All images must be PNG or JPEG, sRGB, no transparency,
+1–10 per size.
+
+| Set | Portrait size | Needed now |
+|---|---|---|
+| iPhone, Dynamic Island (required) | 1179 × 2556 (6.3") or 1206 × 2622 (6.3") | Yes — at least one |
+| iPhone 6.9" (scales down) | 1320 × 2868, 1290 × 2796, or 1260 × 2736 | Yes, if captured on a Pro Max / Plus |
+| iPad 13" | 2064 × 2752 | No — `supportsTablet` is `false`; only if iPad support is enabled |
+
+Capture on a physical iPhone running the TestFlight build (side button + volume up), or on a cloud
+device farm (BrowserStack, Sauce Labs, AWS Device Farm) if no Dynamic Island iPhone is available.
+Take these five screens in this order:
+
+1. Discover with a studio card visible.
+2. A studio page with services and the date strip.
+3. The booking form or confirmation.
+4. Appointments (upcoming booking).
+5. Studio dashboard, for the business side.
+
+Do not submit renders from the Expo web build or AI-generated images: review compares screenshots
+with the shipping app, and mismatches are a rejection risk. Device frames and caption banners around
+real captures are fine.
 
 ## Review notes (paste into App Store Connect)
 

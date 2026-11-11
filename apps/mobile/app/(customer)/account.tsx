@@ -91,6 +91,24 @@ export default function AccountScreen() {
             onPress={() => router.push('/(customer)/discover')}
           />
           <ListRow
+            icon="call-outline"
+            title="Confirm mobile number"
+            subtitle={
+              user?.mobileVerified
+                ? 'Verified'
+                : user?.mobileNumber
+                  ? 'Send a code by SMS or WhatsApp'
+                  : 'No mobile number on this account'
+            }
+            onPress={() => router.push('/verify-phone')}
+          />
+          <ListRow
+            icon="phone-portrait-outline"
+            title="Devices and sessions"
+            subtitle="Review and revoke signed-in browsers and phones"
+            onPress={() => router.push('/sessions')}
+          />
+          <ListRow
             icon="key-outline"
             title="Password and sign-in"
             subtitle="Reset with a one-time email code"
@@ -123,7 +141,7 @@ export default function AccountScreen() {
           <View style={styles.securityRow}>
             <Ionicons name="lock-closed-outline" size={18} color={colors.teal} />
             <Text style={styles.securityText}>
-              Session cookies live in the Android Keystore or iOS Keychain and are cleared when you
+              Sign-in tokens live in the Android Keystore or iOS Keychain and are cleared when you
               sign out. The app blocks release builds over plain HTTP.
             </Text>
           </View>

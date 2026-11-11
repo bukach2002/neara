@@ -1,7 +1,7 @@
 'use client';
 
 import { ReactNode, useEffect, useState } from 'react';
-import { BarChart3, CalendarDays, Layers3, LogOut, ScrollText, Store } from 'lucide-react';
+import { BarChart3, CalendarDays, Layers3, LogOut, ScrollText, ShieldCheck, Store } from 'lucide-react';
 import { adminGet, adminSend, AdminUser, isUnauthorizedError } from '../lib/adminApi';
 import { BrandMark } from '../../components/ui';
 
@@ -42,6 +42,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
           <a href="/admin/platform/bookings"><CalendarDays aria-hidden="true" size={18} />Bookings</a>
           <a href="/admin/platform/categories"><Layers3 aria-hidden="true" size={18} />Categories</a>
           <a href="/admin/platform/logs"><ScrollText aria-hidden="true" size={18} />Logs</a>
+          <a href="/admin/platform/sessions"><ShieldCheck aria-hidden="true" size={18} />Sessions</a>
           <a href="/admin/tenant"><Store aria-hidden="true" size={18} />Tenant admin</a>
         </nav>
         <p>{user ? `${user.name} - ${user.email}` : 'Not signed in'}</p>

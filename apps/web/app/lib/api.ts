@@ -123,11 +123,28 @@ export async function apiGet<T>(path: string): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+/** Double-submit CSRF token issued by the API alongside the session cookie. */
+function csrfToken() {
+  if (typeof document === 'undefined') {
+    return undefined;
+  }
+  const match = document.cookie.split('; ').find((entry) => entry.startsWith('XSRF-TOKEN='));
+  return match ? decodeURIComponent(match.slice('XSRF-TOKEN='.length)) : undefined;
+}
+
+function mutationHeaders() {
+  const token = csrfToken();
+  return {
+    'content-type': 'application/json',
+    ...(token ? { 'x-csrf-token': token } : {}),
+  };
+}
+
 export async function apiPost<T>(path: string, body: unknown): Promise<T> {
   const response = await apiFetch(path, {
     method: 'POST',
     credentials: 'include',
-    headers: { 'content-type': 'application/json' },
+    headers: mutationHeaders(),
     body: JSON.stringify(body),
   });
   return response.json() as Promise<T>;
@@ -137,6 +154,7 @@ export async function apiDelete<T>(path: string): Promise<T> {
   const response = await apiFetch(path, {
     method: 'DELETE',
     credentials: 'include',
+    headers: mutationHeaders(),
   });
   return response.json() as Promise<T>;
 }
@@ -197,6 +215,9 @@ export type CustomerUser = {
   name: string;
   email: string | null;
   mobileNumber: string | null;
+  emailVerified?: boolean;
+  mobileVerified?: boolean;
+  mfaEnabled?: boolean;
 };
 
 export type CustomerAuthResponse = {

@@ -5,6 +5,7 @@ import { inngest } from './inngest.client';
 import { BookingStatus, NotificationChannel, NotificationStatus, Prisma } from '@prisma/client';
 import { StructuredLoggerService } from '../observability/structured-logger.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { SmsService, type SmsChannel } from './sms.service';
 
 type EmailNotificationInput = {
   tenantId?: string | null;
@@ -34,6 +35,8 @@ export class NotificationService {
     private readonly prisma: PrismaService,
     @Optional()
     private readonly logger?: StructuredLoggerService,
+    @Optional()
+    private readonly sms?: SmsService,
   ) {}
 
   async enqueueBookingCreated(input: BookingNotificationInput) {
@@ -181,6 +184,78 @@ export class NotificationService {
     return log;
   }
 
+  /**
+   * SMS/WhatsApp is sent inline rather than through Inngest: verification codes
+   * are useless if a queued retry lands minutes later, and the caller must learn
+   * immediately when no provider is configured.
+   */
+  async enqueueSms(input: {
+    tenantId?: string | null;
+    templateKey: string;
+    recipientPhone: string;
+    payload: Prisma.InputJsonValue;
+    channel: SmsChannel;
+  }) {
+    const log = await this.prisma.notificationLog.create({
+      data: {
+        tenantId: input.tenantId ?? null,
+        channel: input.channel === 'whatsapp' ? NotificationChannel.whatsapp : NotificationChannel.sms,
+        templateKey: input.templateKey,
+        provider: this.sms?.provider() ?? null,
+        status: NotificationStatus.queued,
+        recipientPhone: input.recipientPhone,
+        payload: input.payload,
+      },
+    });
+
+    if (!this.sms) {
+      throw new Error('SMS delivery is not configured');
+    }
+
+    try {
+      const result = await this.sms.send({
+        to: input.recipientPhone,
+        body: this.renderTemplate(input.templateKey, input.payload as Prisma.JsonValue).text,
+        channel: input.channel,
+      });
+
+      await this.prisma.notificationLog.update({
+        where: { id: log.id },
+        data: {
+          status: NotificationStatus.sent,
+          provider: result.provider,
+          sentAt: new Date(),
+          attempts: { increment: 1 },
+          errorMessage: null,
+        },
+      });
+      this.logger?.event('info', 'notification.sms.sent', 'SMS notification sent', {
+        notificationLogId: log.id,
+        tenantId: log.tenantId,
+        templateKey: log.templateKey,
+        channel: input.channel,
+      });
+
+      return log;
+    } catch (error) {
+      await this.prisma.notificationLog.update({
+        where: { id: log.id },
+        data: {
+          status: NotificationStatus.failed,
+          attempts: { increment: 1 },
+          errorMessage: error instanceof Error ? error.message : 'SMS send failed',
+        },
+      });
+      this.logger?.event('error', 'notification.sms.failed', error instanceof Error ? error.message : 'SMS send failed', {
+        notificationLogId: log.id,
+        tenantId: log.tenantId,
+        templateKey: log.templateKey,
+        channel: input.channel,
+      });
+      throw error;
+    }
+  }
+
   async sendInngestEvent(notificationLogId: string) {
     await inngest.send({
       name: 'notification/send-email',
@@ -308,6 +383,34 @@ export class NotificationService {
       return {
         subject: 'Your Neara password reset code',
         text: `Hi ${data.name ?? 'there'}, your Neara password reset code is ${data.otp ?? ''}. It expires in 10 minutes.`,
+      };
+    }
+
+    if (templateKey === 'customer_verify_email_otp') {
+      return {
+        subject: 'Verify your Neara email address',
+        text: `Hi ${data.name ?? 'there'}, your Neara email verification code is ${data.otp ?? ''}. It expires in 10 minutes.`,
+      };
+    }
+
+    if (templateKey === 'customer_verify_mobile_otp') {
+      return {
+        subject: 'Verify your Neara mobile number',
+        text: `Hi ${data.name ?? 'there'}, your Neara mobile verification code is ${data.otp ?? ''}. It expires in 10 minutes.`,
+      };
+    }
+
+    if (templateKey === 'customer_otp_attempts_exhausted') {
+      return {
+        subject: 'Neara security alert: repeated incorrect codes',
+        text: `Hi ${data.name ?? 'there'}, too many incorrect verification codes were entered for your Neara account. If this was not you, reset your password and contact support.`,
+      };
+    }
+
+    if (templateKey === 'customer_password_changed') {
+      return {
+        subject: 'Your Neara password was changed',
+        text: `Hi ${data.name ?? 'there'}, your Neara password was changed on ${data.changedAt ?? 'a recent date'}. All other sessions were signed out. If this was not you, reset your password immediately and contact support.`,
       };
     }
 

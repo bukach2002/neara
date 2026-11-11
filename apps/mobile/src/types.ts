@@ -34,6 +34,7 @@ export type SessionUser = {
   email: string | null;
   mobileNumber: string | null;
   platformRole: 'none' | 'platform_admin';
+  mobileVerified: boolean;
   memberships: Membership[];
 };
 
@@ -56,6 +57,34 @@ export type AdminLoginResponse = {
 export type AdminMeResponse = {
   sessionId: string;
   user: SessionUser;
+};
+
+export type MobileAuthResponse = {
+  role: 'customer' | 'tenant_admin' | 'platform_admin';
+  user: SessionUser & { mfaEnabled?: boolean };
+  memberships: Membership[];
+  tenants: Array<TenantSummary & { role: TenantRole | string }>;
+  accessToken: string;
+  accessTokenExpiresAt: string;
+  refreshToken: string;
+  refreshTokenExpiresAt: string;
+};
+
+export type SessionInfo = {
+  id: string;
+  kind: 'web' | 'mobile';
+  deviceId?: string | null;
+  deviceName?: string | null;
+  platform?: string | null;
+  trustedDevice?: boolean;
+  lastUsedAt?: string | null;
+  createdAt: string;
+  expiresAt: string;
+  current?: boolean;
+};
+
+export type SessionListResponse = {
+  items: SessionInfo[];
 };
 
 export type Category = {

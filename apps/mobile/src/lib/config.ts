@@ -26,7 +26,7 @@ function resolveApiUrl() {
 export const API_URL = resolveApiUrl();
 
 if (!__DEV__ && !API_URL.startsWith('https://')) {
-  // Fail closed: session cookies must never travel over plain HTTP in release builds.
+  // Fail closed: bearer tokens must never travel over plain HTTP in release builds.
   throw new Error('EXPO_PUBLIC_API_URL must use https:// in production builds');
 }
 
