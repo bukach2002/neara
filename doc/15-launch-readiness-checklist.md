@@ -51,7 +51,7 @@ npm --workspace apps/api run db:seed
 
 ## Production Deployment
 
-1. Use separate production DB, Redis, S3 bucket, Mailtrap or production email credentials, and Google Maps API key.
+1. Use separate production DB, Redis, S3 bucket, Resend API key and verified sender domain, and Google Maps API key.
 2. Set `NODE_ENV=production`.
 3. Set long random `SESSION_SECRET` and `CSRF_SECRET`.
 4. Set `RATE_LIMIT_REDIS_ENABLED=true` only when Redis auth is valid.
@@ -85,7 +85,7 @@ Admin flow:
 
 Notifications:
 
-1. Configure Mailtrap credentials.
+1. Configure Resend SMTP credentials and a sender address on a verified domain.
 2. Configure authenticated Redis URL.
 3. Start worker.
 4. Create booking with customer email.

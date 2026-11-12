@@ -70,19 +70,19 @@ export class HealthService {
   }
 
   private async checkEmail() {
-    const username = this.config.get<string>('MAILTRAP_USERNAME', '');
-    const password = this.config.get<string>('MAILTRAP_PASSWORD', '');
-    if (!username || !password) {
-      return { ok: false, configured: false, error: 'Mailtrap credentials are not configured' };
+    const apiKey = this.config.get<string>('RESEND_API_KEY', '');
+    if (!apiKey) {
+      return { ok: false, configured: false, error: 'Resend API key is not configured' };
     }
 
+    const port = this.config.get<number>('RESEND_SMTP_PORT', 465);
     const transporter = nodemailer.createTransport({
-      host: this.config.get<string>('MAILTRAP_HOST', 'sandbox.smtp.mailtrap.io'),
-      port: this.config.get<number>('MAILTRAP_PORT', 2525),
-      secure: false,
+      host: this.config.get<string>('RESEND_SMTP_HOST', 'smtp.resend.com'),
+      port,
+      secure: port === 465,
       auth: {
-        user: username,
-        pass: password,
+        user: 'resend',
+        pass: apiKey,
       },
     });
 

@@ -5,7 +5,7 @@ import { AuthService } from './auth.service';
 import type { AuthContext } from './types';
 
 function serviceWithContext(context: AuthContext) {
-  const service = new AuthService({} as never, {} as never, {} as never, {} as never);
+  const service = new AuthService({} as never, {} as never, {} as never, {} as never, {} as never, {} as never, {} as never);
   jest.spyOn(service, 'requireAdminContext').mockResolvedValue(context);
   return service;
 }
@@ -13,12 +13,15 @@ function serviceWithContext(context: AuthContext) {
 function authContext(overrides: Partial<AuthContext['user']> = {}): AuthContext {
   return {
     sessionId: 'session-1',
+    authenticatedAt: new Date(),
     user: {
       id: 'user-1',
       email: 'admin@neara.local',
       mobileNumber: null,
       name: 'Admin',
       platformRole: PlatformRole.none,
+      mfaEnabled: false,
+      mobileVerified: false,
       memberships: [],
       ...overrides,
     },

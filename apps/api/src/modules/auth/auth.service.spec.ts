@@ -1,13 +1,18 @@
-import { AuthService } from './auth.service';
+import { randomToken, hashToken } from './token.service';
 
-describe('AuthService', () => {
+describe('password reset token hashing', () => {
   it('hashes tokens deterministically without storing the raw token shape', () => {
-    const service = new AuthService({} as never, {} as never, {} as never, {} as never);
+    const token = randomToken();
 
-    const hash = service['hashToken']('reset-token');
+    const hash = hashToken(token);
 
     expect(hash).toHaveLength(64);
-    expect(hash).toBe(service['hashToken']('reset-token'));
-    expect(hash).not.toContain('reset-token');
+    expect(hash).toBe(hashToken(token));
+    expect(hash).not.toContain(token);
+  });
+
+  it('never repeats generated tokens', () => {
+    const tokens = new Set(Array.from({ length: 200 }, () => randomToken()));
+    expect(tokens.size).toBe(200);
   });
 });

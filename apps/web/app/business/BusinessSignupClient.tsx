@@ -622,7 +622,7 @@ export function BusinessSignupClient() {
                 <p className="n-eyebrow">Step 1 of 6</p>
                 <h2 className="n-wizard-title">Account &amp; page address</h2>
                 <p className="n-wizard-hint">
-                  Your page address is reserved the moment you create the account. It becomes neara.app/
+                  Your page address is reserved the moment you create the account. It becomes neara.co.in/
                   <strong>{slug || 'your-studio'}</strong>.
                 </p>
               </div>

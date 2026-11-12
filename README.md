@@ -6,6 +6,7 @@ Production-ready MVP foundation for a multi-tenant appointment booking platform.
 
 - `apps/web`: Next.js, React, TypeScript
 - `apps/api`: NestJS, Prisma, PostgreSQL 16 + PostGIS, Redis/BullMQ-ready
+- `apps/mobile`: Expo (SDK 58) + Expo Router, Android and iOS, role-based interfaces
 - Database IDs use UUIDs.
 - Admin APIs are designed for secure cookie sessions and CSRF-protected web flows.
 - Public booking APIs remain anonymous.
@@ -18,6 +19,7 @@ Production-ready MVP foundation for a multi-tenant appointment booking platform.
    cp .env.example .env
    cp apps/api/.env.example apps/api/.env
    cp apps/web/.env.example apps/web/.env
+   cp apps/mobile/.env.example apps/mobile/.env
    ```
 
    The root `.env` is a local monorepo convenience file. For deployment, use app-specific env vars: API secrets belong to `apps/api`, while the web app should only receive browser-safe values such as `NEXT_PUBLIC_API_APP_URL`.

@@ -4,12 +4,15 @@ import { PlatformAdminService } from './platform-admin.service';
 
 const auth = {
   sessionId: 'session-1',
+  authenticatedAt: new Date('2026-05-18T09:00:00Z'),
   user: {
     id: 'platform-user-1',
     email: 'platform.admin@neara.local',
     mobileNumber: null,
     name: 'Platform Admin',
     platformRole: PlatformRole.platform_admin,
+    mfaEnabled: false,
+    mobileVerified: false,
     memberships: [],
   },
 };
@@ -40,7 +43,8 @@ function setup() {
       update: jest.fn(),
     },
   };
-  const service = new PlatformAdminService(audit as never, notifications as never, prisma as never);
+  const sessions = { revokeAllForUser: jest.fn(), revokeForTenantMembers: jest.fn() };
+  const service = new PlatformAdminService(audit as never, notifications as never, prisma as never, sessions as never);
   return { audit, notifications, prisma, service };
 }
 
@@ -128,8 +132,31 @@ describe('PlatformAdminService booking operations', () => {
     await expect(service.cancelBooking('booking-1', {}, auth)).rejects.toBeInstanceOf(BadRequestException);
 
     expect(prisma.booking.update).not.toHaveBeenCalled();
-    expect(audit.record).not.toHaveBeenCalled();
+    expect(audit.record).not.toHaveBeenCalledWith(expect.objectContaining({ action: 'booking.cancelled' }));
     expect(notifications.enqueueBookingCancelled).not.toHaveBeenCalled();
+  });
+
+  it('audits support access to booking contact details', async () => {
+    const { audit, prisma, service } = setup();
+    prisma.booking.findUnique.mockResolvedValue(booking());
+
+    await service.getBooking('booking-1', auth, '10.0.0.1');
+
+    expect(audit.record).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'booking.detail.view', actorRole: 'platform_admin', sourceIp: '10.0.0.1' }),
+    );
+  });
+
+  it('masks customer contact details in booking lists', async () => {
+    const { prisma, service } = setup();
+    prisma.booking.findMany.mockResolvedValue([booking()]);
+    prisma.booking.count.mockResolvedValue(1);
+
+    const result = await service.listBookings({});
+
+    expect(result.items[0].customerEmailSnapshot).not.toBe('customer@example.com');
+    expect(result.items[0].customerPhoneSnapshot).toBeNull();
+    expect(result.items[0].customerNote).toBeNull();
   });
 
   it('returns notification queue stats from the notification service', async () => {

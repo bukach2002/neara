@@ -18,6 +18,29 @@ type PlaceSuggestion = {
   longitude: number;
 };
 
+/** Published expert fields only. `phone`, `email` and `internalMetadata` are private. */
+const PUBLIC_EXPERT_SELECT = {
+  id: true,
+  displayName: true,
+  shortBio: true,
+  photoUrl: true,
+} as const;
+
+/** Published location/address fields only. */
+const PUBLIC_LOCATION_SELECT = {
+  id: true,
+  name: true,
+  addressLine: true,
+  locality: true,
+  city: true,
+  state: true,
+  postalCode: true,
+  countryCode: true,
+  latitude: true,
+  longitude: true,
+  isPrimary: true,
+} as const;
+
 @Injectable()
 export class PublicService {
   constructor(
@@ -71,9 +94,21 @@ export class PublicService {
       where: {
         id: { in: rankedRows.map((row) => row.id) },
       },
-      include: {
-        primaryCategory: true,
-        locations: { where: { isActive: true, archivedAt: null }, orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }] },
+      // Public search projects only published fields. Never select the full
+      // tenant row: it carries bookingPrefix, archive timestamps and memberships.
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        description: true,
+        logoUrl: true,
+        timezone: true,
+        primaryCategory: { select: { name: true, slug: true } },
+        locations: {
+          where: { isActive: true, archivedAt: null },
+          orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
+          select: PUBLIC_LOCATION_SELECT,
+        },
         services: {
           where: { isActive: true, isPublic: true, archivedAt: null },
           orderBy: { createdAt: 'asc' },
@@ -123,29 +158,55 @@ export class PublicService {
     };
   }
 
+  /**
+   * Public tenant detail. Every nested object is an explicit projection so that
+   * expert phone/email/internalMetadata and internal tenant scalars
+   * (bookingPrefix, archivedAt, activatedAt, createdAt, updatedAt) can never leak
+   * to an anonymous caller.
+   */
   async getTenantBySlug(slug: string) {
     const tenant = await this.prisma.tenant.findFirst({
       where: { slug, status: TenantStatus.active, archivedAt: null },
-      include: {
-        primaryCategory: true,
-        locations: { where: { isActive: true, archivedAt: null }, orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }] },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        description: true,
+        logoUrl: true,
+        timezone: true,
+        publicEmail: true,
+        publicPhone: true,
+        primaryCategory: { select: { name: true, slug: true } },
+        locations: {
+          where: { isActive: true, archivedAt: null },
+          orderBy: [{ isPrimary: 'desc' }, { createdAt: 'asc' }],
+          select: PUBLIC_LOCATION_SELECT,
+        },
         services: {
           where: { isActive: true, isPublic: true, archivedAt: null },
           orderBy: { createdAt: 'asc' },
-          include: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            description: true,
+            durationMinutes: true,
+            displayPriceAmount: true,
+            displayPriceCurrency: true,
             expertServices: {
               where: { isActive: true, expert: { isActive: true, archivedAt: null } },
-              include: { expert: true },
+              select: { expert: { select: PUBLIC_EXPERT_SELECT } },
             },
           },
         },
         experts: {
           where: { isActive: true, archivedAt: null },
           orderBy: { displayName: 'asc' },
-          include: {
+          select: {
+            ...PUBLIC_EXPERT_SELECT,
             expertServices: {
               where: { isActive: true, service: { isActive: true, isPublic: true, archivedAt: null } },
-              include: { service: true },
+              select: { service: { select: { id: true, name: true, durationMinutes: true } } },
             },
           },
         },

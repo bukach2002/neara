@@ -76,10 +76,40 @@ export class CustomerOtpConfirmDto {
   @IsIn(['login', 'password_reset'])
   purpose!: 'login' | 'password_reset';
 
+  @ApiPropertyOptional({ enum: ['email', 'sms', 'whatsapp'] })
+  @IsOptional()
+  @IsIn(['email', 'sms', 'whatsapp'])
+  channel?: 'email' | 'sms' | 'whatsapp';
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsBoolean()
   trustDevice?: boolean;
+}
+
+export class PhoneVerifyRequestDto {
+  @ApiProperty({ example: '+919876543210' })
+  @IsString()
+  identifier!: string;
+
+  @ApiProperty({ enum: ['sms', 'whatsapp'] })
+  @IsIn(['sms', 'whatsapp'])
+  channel!: 'sms' | 'whatsapp';
+}
+
+export class PhoneVerifyConfirmDto {
+  @ApiProperty({ example: '+919876543210' })
+  @IsString()
+  identifier!: string;
+
+  @ApiProperty({ example: '123456' })
+  @IsString()
+  @Matches(/^\d{6}$/)
+  otp!: string;
+
+  @ApiProperty({ enum: ['sms', 'whatsapp'] })
+  @IsIn(['sms', 'whatsapp'])
+  channel!: 'sms' | 'whatsapp';
 }
 
 export class CustomerPasswordResetConfirmDto {

@@ -3,13 +3,68 @@ import { ConflictException } from '@nestjs/common';
 import { BookingStatus, Prisma, TenantStatus } from '@prisma/client';
 
 describe('BookingService', () => {
-  it('generates a 4-character uppercase booking code without ambiguous characters', () => {
+  it('generates an 8-character uppercase booking code without ambiguous characters', () => {
     const service = new BookingService({} as never, {} as never, {} as never, {} as never);
 
-    const code = service['randomCode']();
+    for (let index = 0; index < 50; index += 1) {
+      const code = service['randomCode']();
+      expect(code).toMatch(/^[A-Z2-9]{8}$/);
+      expect(code).not.toMatch(/[IO01]/);
+    }
+  });
 
-    expect(code).toMatch(/^[A-Z2-9]{4}$/);
-    expect(code).not.toMatch(/[IO01]/);
+  it('masks customer contact details for unauthenticated lookups', async () => {
+    const audit = { record: jest.fn() };
+    const prisma = {
+      booking: {
+        findFirst: jest.fn().mockResolvedValue({
+          id: 'booking-1',
+          bookingReference: 'NEAR-ABCD1234',
+          status: BookingStatus.confirmed,
+          customerNameSnapshot: 'Priya Sharma',
+          customerPhoneSnapshot: '+919876543210',
+          customerEmailSnapshot: 'priya@example.com',
+          customerNote: 'Gate code 4411',
+          customer: { userId: 'user-1' },
+        }),
+      },
+    };
+    const service = new BookingService(audit as never, {} as never, prisma as never, {} as never);
+
+    const result = await service.lookupBooking({ reference: 'near-abcd1234', phone: '+919876543210' });
+
+    expect(result.customerNameSnapshot).not.toBe('Priya Sharma');
+    expect(result.customerPhoneSnapshot).not.toBe('+919876543210');
+    expect(result.customerEmailSnapshot).toBeNull();
+    expect(result.customerNote).toBeNull();
+    expect(result).not.toHaveProperty('customer');
+  });
+
+  it('returns the complete record to the signed-in owner', async () => {
+    const audit = { record: jest.fn() };
+    const booking = {
+      id: 'booking-1',
+      bookingReference: 'NEAR-ABCD1234',
+      status: BookingStatus.confirmed,
+      customerNameSnapshot: 'Priya Sharma',
+      customerPhoneSnapshot: '+919876543210',
+      customerEmailSnapshot: 'priya@example.com',
+      customerNote: 'Gate code 4411',
+      customer: { userId: 'user-1' },
+    };
+    const prisma = { booking: { findFirst: jest.fn().mockResolvedValue(booking) } };
+    const service = new BookingService(audit as never, {} as never, prisma as never, {} as never);
+
+    const result = await service.lookupBooking(
+      { reference: 'NEAR-ABCD1234', phone: '+919876543210' },
+      { userId: 'user-1', mobileNumber: '+919876543210' },
+    );
+
+    expect(result.customerEmailSnapshot).toBe('priya@example.com');
+    expect(result.customerNote).toBe('Gate code 4411');
+    expect(prisma.booking.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ OR: expect.any(Array) }) }),
+    );
   });
 
   it('logs and rejects a booking when the selected slot conflicts inside the transaction', async () => {

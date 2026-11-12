@@ -2,7 +2,9 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { BookingStatus, Prisma, TenantRole, TenantStatus } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import { randomBytes } from 'crypto';
+import { assertStrongPassword, maskEmail, maskPhone } from '../../support/security';
 import { AuditService } from '../audit/audit.service';
+import { SessionService } from '../auth/session.service';
 import { AuthContext } from '../auth/types';
 import { NotificationService } from '../notification/notification.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -22,6 +24,7 @@ export class PlatformAdminService {
     private readonly audit: AuditService,
     private readonly notifications: NotificationService,
     private readonly prisma: PrismaService,
+    private readonly sessions: SessionService,
   ) {}
 
   listCategories() {
@@ -104,7 +107,6 @@ export class PlatformAdminService {
     if (dto.primaryCategoryId) {
       await this.findCategoryOrThrow(dto.primaryCategoryId);
     }
-    console.log(`Creating tenant: dto.name=${dto.name}, dto.slug=${dto.slug}, dto.bookingPrefix=${dto.bookingPrefix}, dto.primaryCategoryId=${dto.primaryCategoryId}, dto.timezone=${dto.timezone}, dto.description=${dto.description}, dto.publicEmail=${dto.publicEmail}, dto.publicPhone=${dto.publicPhone}`);
     const tenant = await this.prisma.tenant.create({
       data: {
         name: dto.name.trim(),
@@ -137,13 +139,45 @@ export class PlatformAdminService {
   async getTenant(id: string) {
     const tenant = await this.prisma.tenant.findUnique({
       where: { id },
-      include: {
-        primaryCategory: true,
-        locations: { orderBy: { createdAt: 'asc' } },
-        services: { orderBy: { createdAt: 'asc' } },
-        experts: { orderBy: { createdAt: 'asc' } },
-        memberships: { include: { user: true } },
-        _count: { select: { bookings: true, auditLogs: true, notificationLogs: true } },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        bookingPrefix: true,
+        status: true,
+        timezone: true,
+        description: true,
+        publicEmail: true,
+        publicPhone: true,
+        logoUrl: true,
+        primaryCategoryId: true,
+        activatedAt: true,
+        archivedAt: true,
+        createdAt: true,
+        updatedAt: true,
+        primaryCategory: { select: { id: true, name: true, slug: true } },
+        locations: {
+          orderBy: { createdAt: 'asc' },
+          select: { id: true, name: true, locality: true, city: true, addressLine: true, isActive: true, isPrimary: true },
+        },
+        services: {
+          orderBy: { createdAt: 'asc' },
+          select: { id: true, name: true, slug: true, isActive: true, isPublic: true, durationMinutes: true },
+        },
+        experts: {
+          orderBy: { createdAt: 'asc' },
+          select: { id: true, displayName: true, slug: true, isActive: true, phone: true, email: true },
+        },
+        // Staff account records, never password hashes or MFA seeds.
+        memberships: {
+          select: {
+            id: true,
+            role: true,
+            createdAt: true,
+            user: { select: { id: true, name: true, email: true, status: true, platformRole: true } },
+          },
+        },
+        _count: { select: { bookings: true, auditLogs: true, notificationLogs: true, locations: true, services: true, experts: true, memberships: true } },
       },
     });
 
@@ -248,6 +282,7 @@ export class PlatformAdminService {
 
     const email = dto.email.trim().toLowerCase();
     const temporaryPassword = dto.temporaryPassword ?? this.generateTemporaryPassword();
+    assertStrongPassword(temporaryPassword, { email, name: dto.name });
     const passwordHash = await bcrypt.hash(temporaryPassword, 12);
 
     const result = await this.prisma.$transaction(async (tx) => {
@@ -277,6 +312,9 @@ export class PlatformAdminService {
 
       return { user, membership };
     });
+
+    // A reset password must invalidate every session issued with the old one.
+    await this.sessions.revokeAllForUser(result.user.id);
 
     await this.audit.record({
       tenantId,
@@ -407,26 +445,51 @@ export class PlatformAdminService {
       this.prisma.booking.count({ where }),
     ]);
 
-    return { items, total, take: query.take ?? 50, skip: query.skip ?? 0 };
+    // Lists are for triage: contact details are masked and only the single-record
+    // detail view (audited) reveals them.
+    return {
+      items: items.map((booking) => ({
+        ...booking,
+        customerPhoneSnapshot: maskPhone(booking.customerPhoneSnapshot),
+        customerEmailSnapshot: maskEmail(booking.customerEmailSnapshot),
+        customerNote: null,
+      })),
+      total,
+      take: query.take ?? 50,
+      skip: query.skip ?? 0,
+    };
   }
 
-  async getBooking(bookingId: string) {
+  /** Single-record view used for support. Access to contact PII is audited. */
+  async getBooking(bookingId: string, auth: AuthContext, sourceIp?: string) {
     const booking = await this.prisma.booking.findUnique({
       where: { id: bookingId },
       include: {
-        tenant: true,
-        service: true,
-        expert: true,
-        location: true,
-        customer: true,
+        tenant: { select: { id: true, name: true, slug: true, status: true, timezone: true } },
+        service: { select: { id: true, name: true, durationMinutes: true } },
+        expert: { select: { id: true, displayName: true } },
+        location: { select: { id: true, name: true, locality: true } },
+        customer: { select: { id: true, name: true, phone: true, email: true } },
       },
     });
     if (!booking) throw new NotFoundException('Booking not found');
+
+    await this.audit.record({
+      tenantId: booking.tenantId,
+      actorUserId: auth.user.id,
+      actorRole: 'platform_admin',
+      entityType: 'booking',
+      entityId: booking.id,
+      action: 'booking.detail.view',
+      summary: 'Viewed booking contact details as platform admin',
+      sourceIp,
+    });
+
     return booking;
   }
 
   async cancelBooking(bookingId: string, dto: BookingStatusNoteDto, auth: AuthContext, sourceIp?: string) {
-    const before = await this.getBooking(bookingId);
+    const before = await this.getBooking(bookingId, auth, sourceIp);
     if (before.status !== BookingStatus.confirmed) {
       throw new BadRequestException('Only confirmed bookings can be cancelled');
     }
@@ -481,6 +544,9 @@ export class PlatformAdminService {
     }
 
     const customerIds = customers.map((customer) => customer.id);
+    const linkedUserIds = Array.from(
+      new Set(customers.map((customer) => customer.userId).filter((userId): userId is string => Boolean(userId))),
+    );
     const names = Array.from(new Set(customers.map((customer) => customer.name).filter(Boolean)));
     const phones = Array.from(new Set(customers.map((customer) => customer.phone).filter((phone): phone is string => Boolean(phone))));
     const emails = Array.from(new Set(customers.map((customer) => customer.email).filter((email): email is string => Boolean(email))));
@@ -494,6 +560,7 @@ export class PlatformAdminService {
           name: 'Anonymized Customer',
           phone: null,
           email: null,
+          userId: null,
         },
       });
 
@@ -564,6 +631,20 @@ export class PlatformAdminService {
         });
       }
 
+      // Verification and reset material keyed by the erased identifiers goes too.
+      if (linkedUserIds.length > 0 || emails.length > 0 || phones.length > 0) {
+        await tx.otpToken.deleteMany({
+          where: {
+            OR: [
+              ...(linkedUserIds.length > 0 ? [{ userId: { in: linkedUserIds } }] : []),
+              ...(emails.length > 0 ? [{ recipient: { in: emails } }] : []),
+              ...(phones.length > 0 ? [{ recipient: { in: phones } }] : []),
+            ],
+          },
+        });
+        await tx.passwordResetToken.deleteMany({ where: { userId: { in: linkedUserIds } } });
+      }
+
       return {
         customers: customerUpdate.count,
         bookings: bookingUpdate.count,
@@ -572,6 +653,10 @@ export class PlatformAdminService {
         auditLogs: auditLogs.length,
       };
     });
+
+    for (const userId of linkedUserIds) {
+      await this.sessions.revokeAllForUser(userId);
+    }
 
     await this.audit.record({
       tenantId: dto.tenantId ?? (tenantIds.length === 1 ? tenantIds[0] : null),
@@ -600,6 +685,11 @@ export class PlatformAdminService {
       data: { status },
       include: { primaryCategory: true },
     });
+
+    if (status !== TenantStatus.active) {
+      // Suspending or inactivating a tenant must immediately end staff access.
+      await this.sessions.revokeForTenantMembers(id);
+    }
 
     await this.audit.record({
       tenantId: tenant.id,

@@ -1,8 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AvailabilityExceptionType, BookingStatus, Prisma, UploadedAssetOwnerType } from '@prisma/client';
 import { AuditService } from '../audit/audit.service';
-import { AuthContext } from '../auth/types';
+import { AuthContext, hasTenantRole } from '../auth/types';
 import { NotificationService } from '../notification/notification.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { UploadService } from '../upload/upload.service';
@@ -28,7 +28,8 @@ export class TenantAdminService {
     private readonly config: ConfigService,
   ) {}
 
-  async getDashboard(tenantId: string) {
+  async getDashboard(tenantId: string, auth: AuthContext) {
+    this.assertScope(auth, tenantId);
     await this.findTenantOrThrow(tenantId);
     const startOfToday = new Date();
     startOfToday.setHours(0, 0, 0, 0);
@@ -45,11 +46,13 @@ export class TenantAdminService {
     return { bookingsToday, upcomingBookings, confirmedBookings, cancelledBookings };
   }
 
-  getProfile(tenantId: string) {
+  getProfile(tenantId: string, auth: AuthContext) {
+    this.assertScope(auth, tenantId);
     return this.findTenantOrThrow(tenantId);
   }
 
   async updateProfile(tenantId: string, dto: UpdateTenantProfileDto, auth: AuthContext, sourceIp?: string) {
+    this.assertScope(auth, tenantId);
     const before = await this.findTenantOrThrow(tenantId);
     if (dto.primaryCategoryId) {
       const category = await this.prisma.category.findFirst({
@@ -89,11 +92,13 @@ export class TenantAdminService {
     return tenant;
   }
 
-  listLocations(tenantId: string) {
+  listLocations(tenantId: string, auth: AuthContext) {
+    this.assertScope(auth, tenantId);
     return this.prisma.location.findMany({ where: { tenantId, archivedAt: null }, orderBy: { createdAt: 'asc' } });
   }
 
   async upsertPrimaryLocation(tenantId: string, dto: UpsertLocationDto, auth: AuthContext, sourceIp?: string) {
+    this.assertScope(auth, tenantId);
     await this.findTenantOrThrow(tenantId);
     const existing = await this.prisma.location.findFirst({ where: { tenantId, isPrimary: true, archivedAt: null } });
     const data = {
@@ -130,7 +135,8 @@ export class TenantAdminService {
     return location;
   }
 
-  async geocodeLocation(tenantId: string, address: string) {
+  async geocodeLocation(tenantId: string, address: string, auth: AuthContext) {
+    this.assertScope(auth, tenantId);
     await this.findTenantOrThrow(tenantId);
     const apiKey = this.config.get<string>('GOOGLE_MAPS_API_KEY', '');
     if (!apiKey) {
@@ -176,6 +182,7 @@ export class TenantAdminService {
   }
 
   async uploadTenantLogo(tenantId: string, file: Express.Multer.File, auth: AuthContext, sourceIp?: string) {
+    this.assertScope(auth, tenantId);
     const before = await this.findTenantOrThrow(tenantId);
     const asset = await this.uploads.uploadImage({
       tenantId,
@@ -206,11 +213,13 @@ export class TenantAdminService {
     return { asset, tenant };
   }
 
-  listServices(tenantId: string) {
+  listServices(tenantId: string, auth: AuthContext) {
+    this.assertScope(auth, tenantId);
     return this.prisma.service.findMany({ where: { tenantId, archivedAt: null }, orderBy: { createdAt: 'desc' } });
   }
 
   async createService(tenantId: string, dto: CreateServiceDto, auth: AuthContext, sourceIp?: string) {
+    this.assertScope(auth, tenantId);
     await this.findTenantOrThrow(tenantId);
     const service = await this.prisma.service.create({ data: this.createServiceData(tenantId, dto) });
     await this.audit.record({
@@ -228,6 +237,7 @@ export class TenantAdminService {
   }
 
   async updateService(tenantId: string, serviceId: string, dto: UpdateServiceDto, auth: AuthContext, sourceIp?: string) {
+    this.assertScope(auth, tenantId);
     const before = await this.findServiceOrThrow(tenantId, serviceId);
     const service = await this.prisma.service.update({ where: { id: serviceId }, data: this.updateServiceData(dto) });
     await this.audit.record({
@@ -245,7 +255,8 @@ export class TenantAdminService {
     return service;
   }
 
-  listExperts(tenantId: string) {
+  listExperts(tenantId: string, auth: AuthContext) {
+    this.assertScope(auth, tenantId);
     return this.prisma.expert.findMany({
       where: { tenantId, archivedAt: null },
       orderBy: { createdAt: 'desc' },
@@ -254,6 +265,7 @@ export class TenantAdminService {
   }
 
   async createExpert(tenantId: string, dto: CreateExpertDto, auth: AuthContext, sourceIp?: string) {
+    this.assertScope(auth, tenantId);
     await this.findTenantOrThrow(tenantId);
     const expert = await this.prisma.expert.create({ data: this.createExpertData(tenantId, dto) });
     await this.audit.record({
@@ -271,6 +283,7 @@ export class TenantAdminService {
   }
 
   async updateExpert(tenantId: string, expertId: string, dto: UpdateExpertDto, auth: AuthContext, sourceIp?: string) {
+    this.assertScope(auth, tenantId);
     const before = await this.findExpertOrThrow(tenantId, expertId);
     const expert = await this.prisma.expert.update({ where: { id: expertId }, data: this.updateExpertData(dto) });
     await this.audit.record({
@@ -289,6 +302,7 @@ export class TenantAdminService {
   }
 
   async uploadExpertPhoto(tenantId: string, expertId: string, file: Express.Multer.File, auth: AuthContext, sourceIp?: string) {
+    this.assertScope(auth, tenantId);
     const before = await this.findExpertOrThrow(tenantId, expertId);
     const asset = await this.uploads.uploadImage({
       tenantId,
@@ -320,6 +334,7 @@ export class TenantAdminService {
   }
 
   async setExpertServices(tenantId: string, expertId: string, dto: SetExpertServicesDto, auth: AuthContext, sourceIp?: string) {
+    this.assertScope(auth, tenantId);
     await this.findExpertOrThrow(tenantId, expertId);
     const services = await this.prisma.service.findMany({ where: { tenantId, id: { in: dto.serviceIds }, archivedAt: null } });
     if (services.length !== dto.serviceIds.length) {
@@ -348,7 +363,8 @@ export class TenantAdminService {
     return assignments;
   }
 
-  listAvailabilityRules(tenantId: string, expertId: string) {
+  listAvailabilityRules(tenantId: string, expertId: string, auth: AuthContext) {
+    this.assertScope(auth, tenantId);
     return this.prisma.availabilityRule.findMany({
       where: { tenantId, expertId, isActive: true },
       orderBy: [{ dayOfWeek: 'asc' }, { startLocalTime: 'asc' }],
@@ -362,6 +378,7 @@ export class TenantAdminService {
     auth: AuthContext,
     sourceIp?: string,
   ) {
+    this.assertScope(auth, tenantId);
     await this.findExpertOrThrow(tenantId, expertId);
     this.assertValidWindow(dto.startLocalTime, dto.endLocalTime);
     await this.assertNoAvailabilityOverlap(tenantId, expertId, dto);
@@ -382,6 +399,7 @@ export class TenantAdminService {
   }
 
   async deleteAvailabilityRule(tenantId: string, expertId: string, ruleId: string, auth: AuthContext, sourceIp?: string) {
+    this.assertScope(auth, tenantId);
     const before = await this.prisma.availabilityRule.findFirst({ where: { id: ruleId, tenantId, expertId } });
     if (!before) throw new NotFoundException('Availability rule not found');
     const rule = await this.prisma.availabilityRule.update({ where: { id: ruleId }, data: { isActive: false } });
@@ -400,7 +418,8 @@ export class TenantAdminService {
     return rule;
   }
 
-  listAvailabilityExceptions(tenantId: string, expertId: string) {
+  listAvailabilityExceptions(tenantId: string, expertId: string, auth: AuthContext) {
+    this.assertScope(auth, tenantId);
     return this.prisma.availabilityException.findMany({
       where: { tenantId, expertId },
       orderBy: [{ startsOn: 'asc' }, { startLocalTime: 'asc' }],
@@ -414,6 +433,7 @@ export class TenantAdminService {
     auth: AuthContext,
     sourceIp?: string,
   ) {
+    this.assertScope(auth, tenantId);
     await this.findExpertOrThrow(tenantId, expertId);
     const startsOn = this.dateOnly(dto.startsOn);
     const endsOn = this.dateOnly(dto.endsOn);
@@ -467,6 +487,7 @@ export class TenantAdminService {
     auth: AuthContext,
     sourceIp?: string,
   ) {
+    this.assertScope(auth, tenantId);
     const before = await this.prisma.availabilityException.findFirst({ where: { id: exceptionId, tenantId, expertId } });
     if (!before) throw new NotFoundException('Availability exception not found');
     const deleted = await this.prisma.availabilityException.delete({ where: { id: exceptionId } });
@@ -486,7 +507,8 @@ export class TenantAdminService {
     return { ok: true, id: deleted.id };
   }
 
-  async listBookings(tenantId: string, query: ListBookingsQueryDto) {
+  async listBookings(tenantId: string, query: ListBookingsQueryDto, auth: AuthContext) {
+    this.assertScope(auth, tenantId);
     await this.findTenantOrThrow(tenantId);
     const where = this.bookingWhere(tenantId, query);
     const [items, total] = await Promise.all([
@@ -506,7 +528,8 @@ export class TenantAdminService {
     return { items, total, take: query.take ?? 50, skip: query.skip ?? 0 };
   }
 
-  async getBooking(tenantId: string, bookingId: string) {
+  async getBooking(tenantId: string, bookingId: string, auth: AuthContext) {
+    this.assertScope(auth, tenantId);
     const booking = await this.prisma.booking.findFirst({
       where: { id: bookingId, tenantId },
       include: {
@@ -552,7 +575,8 @@ export class TenantAdminService {
     auth: AuthContext,
     sourceIp?: string,
   ) {
-    const before = await this.getBooking(tenantId, bookingId);
+    this.assertScope(auth, tenantId);
+    const before = await this.getBooking(tenantId, bookingId, auth);
     if (before.status !== BookingStatus.confirmed) {
       throw new BadRequestException('Only confirmed bookings can change status in MVP');
     }
@@ -629,6 +653,16 @@ export class TenantAdminService {
       email: dto.email?.trim().toLowerCase(),
       isActive: dto.isActive,
     };
+  }
+
+  /**
+   * Service-layer tenant isolation. Route wrappers are not the only barrier: a
+   * future route mounted without `tenantAuth` still cannot cross tenants.
+   */
+  private assertScope(auth: AuthContext, tenantId: string) {
+    if (!hasTenantRole(auth, tenantId)) {
+      throw new ForbiddenException('Tenant access is required');
+    }
   }
 
   private async findTenantOrThrow(tenantId: string) {

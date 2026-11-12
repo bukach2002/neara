@@ -40,6 +40,8 @@ enum SessionAudience {
 enum OtpPurpose {
   login
   password_reset
+  verify_email
+  verify_mobile
 }
 
 enum OtpChannel {
@@ -62,6 +64,7 @@ enum AvailabilityExceptionType {
 
 enum NotificationChannel {
   email
+  sms
   whatsapp
 }
 
@@ -90,10 +93,15 @@ model User {
   failedLoginAttempts   Int                  @default(0)
   lockedUntil           DateTime?
   passwordResetAt       DateTime?
+  emailVerifiedAt       DateTime?
+  mobileVerifiedAt      DateTime?
+  mfaSecretCiphertext   String?
+  mfaEnabledAt          DateTime?
   createdAt             DateTime             @default(now())
   updatedAt             DateTime             @updatedAt
   memberships           TenantMembership[]
   sessions              Session[]
+  mobileRefreshTokens   MobileRefreshToken[]
   passwordResetTokens   PasswordResetToken[]
   otpTokens             OtpToken[]
   customerProfiles      Customer[]
@@ -117,18 +125,47 @@ model TenantMembership {
 }
 
 model Session {
-  id            String          @id @default(uuid()) @db.Uuid
-  userId        String          @db.Uuid
-  tokenHash     String          @unique
-  audience      SessionAudience @default(admin)
-  trustedDevice Boolean         @default(false)
-  expiresAt     DateTime
-  createdAt     DateTime        @default(now())
-  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                String          @id @default(uuid()) @db.Uuid
+  userId            String          @db.Uuid
+  tokenHash         String          @unique
+  audience          SessionAudience @default(admin)
+  trustedDevice     Boolean         @default(false)
+  deviceId          String?
+  deviceName        String?
+  platform          String?
+  lastUsedAt        DateTime?
+  revokedAt         DateTime?
+  expiresAt         DateTime
+  absoluteExpiresAt DateTime?
+  createdAt         DateTime        @default(now())
+  user              User            @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
+  @@index([userId, audience])
   @@index([audience, expiresAt])
   @@map("sessions")
+}
+
+model MobileRefreshToken {
+  id                  String          @id @default(uuid()) @db.Uuid
+  userId              String          @db.Uuid
+  familyId            String          @db.Uuid
+  tokenHash           String          @unique
+  deviceId            String
+  deviceName          String?
+  platform            String?
+  audience            SessionAudience
+  replacedByTokenHash String?
+  lastUsedAt          DateTime?
+  revokedAt           DateTime?
+  expiresAt           DateTime
+  createdAt           DateTime        @default(now())
+  user                User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, familyId])
+  @@index([userId, revokedAt])
+  @@index([expiresAt])
+  @@map("mobile_refresh_tokens")
 }
 
 model OtpToken {

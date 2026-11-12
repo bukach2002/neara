@@ -27,13 +27,61 @@ function tenant(id: string, name: string) {
 function setup() {
   const prisma = {
     $queryRaw: jest.fn(),
-    tenant: { findMany: jest.fn() },
+    tenant: { findMany: jest.fn(), findFirst: jest.fn() },
     category: { findMany: jest.fn() },
   };
   const config = { get: jest.fn().mockReturnValue('maps-key') };
   const service = new PublicService(prisma as never, config as never);
   return { config, prisma, service };
 }
+
+const FORBIDDEN_PUBLIC_KEYS = new Set([
+  'phone',
+  'email',
+  'internalMetadata',
+  'bookingPrefix',
+  'archivedAt',
+  'activatedAt',
+  'createdAt',
+  'updatedAt',
+]);
+
+function collectSelectKeys(node: unknown, keys: string[] = []): string[] {
+  if (!node || typeof node !== 'object') {
+    return keys;
+  }
+  for (const [key, value] of Object.entries(node as Record<string, unknown>)) {
+    if (key === 'select' || key === 'include') {
+      if (value && typeof value === 'object') {
+        for (const [nestedKey, nestedValue] of Object.entries(value as Record<string, unknown>)) {
+          keys.push(nestedKey);
+          collectSelectKeys(nestedValue, keys);
+        }
+      }
+      continue;
+    }
+    collectSelectKeys(value, keys);
+  }
+  return keys;
+}
+
+describe('PublicService response contract', () => {
+  it('projects only published tenant, location and expert fields', async () => {
+    const { prisma, service } = setup();
+    prisma.tenant.findFirst.mockResolvedValue({ id: 'tenant-1', slug: 'alpha' });
+
+    await service.getTenantBySlug('alpha');
+
+    const query = prisma.tenant.findFirst.mock.calls[0][0] as { select: Record<string, unknown> };
+    const selectedKeys = collectSelectKeys(query.select);
+    const leaked = selectedKeys.filter((key) => FORBIDDEN_PUBLIC_KEYS.has(key));
+
+    expect(leaked).toEqual([]);
+    expect(collectSelectKeys(query.select)).toEqual(
+      expect.arrayContaining(['id', 'displayName', 'shortBio', 'photoUrl']),
+    );
+  });
+});
 
 describe('PublicService search', () => {
   afterEach(() => {

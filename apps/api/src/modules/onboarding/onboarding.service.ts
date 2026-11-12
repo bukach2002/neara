@@ -1,4 +1,4 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, TenantRole, TenantStatus } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import type { Response } from 'express';
@@ -166,7 +166,10 @@ export class OnboardingService {
     };
   }
 
-  async status(tenantId: string) {
+  async status(tenantId: string, auth: AuthContext) {
+    if (!auth.user.memberships.some((membership) => membership.tenantId === tenantId)) {
+      throw new ForbiddenException('Tenant access is required');
+    }
     const tenant = await this.prisma.tenant.findUnique({
       where: { id: tenantId },
       include: { primaryCategory: { select: { id: true, name: true, slug: true } } },
@@ -199,6 +202,9 @@ export class OnboardingService {
   }
 
   async complete(tenantId: string, auth: AuthContext, sourceIp?: string) {
+    if (!auth.user.memberships.some((membership) => membership.tenantId === tenantId)) {
+      throw new ForbiddenException('Tenant access is required');
+    }
     const before = await this.prisma.tenant.findUnique({ where: { id: tenantId } });
     if (!before) {
       throw new NotFoundException('Tenant not found');

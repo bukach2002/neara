@@ -1,6 +1,8 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { BookingStatus, Prisma, TenantStatus } from '@prisma/client';
+import { randomInt } from 'crypto';
 import { DateTime } from 'luxon';
+import { maskEmail, maskName, maskPhone, normalizePhone } from '../../support/security';
 import { AuditService } from '../audit/audit.service';
 import { NotificationService } from '../notification/notification.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -9,6 +11,9 @@ import { CreatePublicBookingDto } from './dto/create-public-booking.dto';
 import { LookupBookingQueryDto } from './dto/lookup-booking-query.dto';
 
 const BOOKING_CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+// 8 characters from a 32 symbol alphabet is 40 bits of entropy. Four characters
+// (20 bits) was brute-forceable once the public prefix was known.
+const BOOKING_CODE_LENGTH = 8;
 
 @Injectable()
 export class BookingService {
@@ -28,7 +33,13 @@ export class BookingService {
     if (!dto.consentAccepted) {
       throw new BadRequestException('Consent is required to create a booking');
     }
-    if (customerUser?.mobileNumber && dto.customerPhone.trim() !== customerUser.mobileNumber) {
+    const submittedPhone = normalizePhone(dto.customerPhone);
+    if (!submittedPhone) {
+      throw new BadRequestException('Enter a valid mobile number including country code');
+    }
+    dto.customerPhone = submittedPhone;
+
+    if (customerUser?.mobileNumber && submittedPhone !== normalizePhone(customerUser.mobileNumber)) {
       throw new BadRequestException('Booking phone must match the signed-in mobile number');
     }
     if (customerUser?.email) {
@@ -123,7 +134,7 @@ export class BookingService {
               tenantId: tenant.id,
               userId: customerUser?.id,
               name: dto.customerName.trim(),
-              phone: dto.customerPhone.trim(),
+              phone: dto.customerPhone,
               email: dto.customerEmail?.trim().toLowerCase(),
             },
           });
@@ -153,7 +164,7 @@ export class BookingService {
               serviceCurrencySnapshot: service.displayPriceCurrency,
               expertDisplayNameSnapshot: selectedSlot.expert.displayName,
               customerNameSnapshot: dto.customerName.trim(),
-              customerPhoneSnapshot: dto.customerPhone.trim(),
+              customerPhoneSnapshot: dto.customerPhone,
               customerEmailSnapshot: dto.customerEmail?.trim().toLowerCase(),
               customerNote: dto.customerNote?.trim(),
               consentAcceptedAt: new Date(),
@@ -213,11 +224,36 @@ export class BookingService {
     }
   }
 
-  async lookupBooking(query: LookupBookingQueryDto) {
+  /**
+   * Booking lookup.
+   *
+   * A signed-in customer can only resolve their own bookings (or guest bookings
+   * made with their own phone number). Unauthenticated lookups require the
+   * reference plus the booking phone number, are rate limited per reference and
+   * per phone, and return masked PII only.
+   */
+  async lookupBooking(query: LookupBookingQueryDto, viewer?: { userId: string; mobileNumber: string | null }, sourceIp?: string) {
+    const reference = query.reference.trim().toUpperCase();
+    const phone = normalizePhone(query.phone);
+    if (!phone) {
+      throw new NotFoundException('Booking not found');
+    }
+
+    const ownerScoped =
+      Boolean(viewer) && Boolean(viewer?.mobileNumber) && normalizePhone(viewer?.mobileNumber) === phone;
+
     const booking = await this.prisma.booking.findFirst({
       where: {
-        bookingReference: query.reference.trim().toUpperCase(),
-        customerPhoneSnapshot: query.phone.trim(),
+        bookingReference: reference,
+        customerPhoneSnapshot: phone,
+        ...(viewer
+          ? {
+              OR: [
+                { customer: { userId: viewer.userId } },
+                ...(ownerScoped ? [{ customer: { userId: null } }] : []),
+              ],
+            }
+          : {}),
       },
       select: {
         id: true,
@@ -238,14 +274,38 @@ export class BookingService {
         customerNameSnapshot: true,
         customerPhoneSnapshot: true,
         customerEmailSnapshot: true,
+        customerNote: true,
+        createdAt: true,
+        customer: { select: { userId: true } },
       },
     });
 
     if (!booking) {
+      await this.audit.record({
+        actorRole: 'anonymous',
+        entityType: 'booking',
+        entityId: reference,
+        action: 'booking.lookup.failed',
+        summary: 'Rejected an unmatched booking lookup',
+        sourceIp,
+      });
       throw new NotFoundException('Booking not found');
     }
 
-    return booking;
+    const isOwner = Boolean(viewer) && booking.customer?.userId === viewer?.userId;
+    const { customer, ...safe } = booking;
+
+    if (isOwner) {
+      return safe;
+    }
+
+    return {
+      ...safe,
+      customerNameSnapshot: maskName(booking.customerNameSnapshot) ?? 'Customer',
+      customerPhoneSnapshot: maskPhone(booking.customerPhoneSnapshot),
+      customerEmailSnapshot: null,
+      customerNote: null,
+    };
   }
 
   private async pickAutoAssignedSlot(
@@ -286,8 +346,8 @@ export class BookingService {
 
   private randomCode() {
     let code = '';
-    for (let index = 0; index < 4; index += 1) {
-      code += BOOKING_CODE_ALPHABET[Math.floor(Math.random() * BOOKING_CODE_ALPHABET.length)];
+    for (let index = 0; index < BOOKING_CODE_LENGTH; index += 1) {
+      code += BOOKING_CODE_ALPHABET[randomInt(0, BOOKING_CODE_ALPHABET.length)];
     }
     return code;
   }

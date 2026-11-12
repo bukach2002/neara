@@ -67,7 +67,7 @@ Use:
 - Database: PostgreSQL 16+ with PostGIS
 - ORM: Prisma
 - Background jobs: BullMQ + Redis
-- Email provider: Mailtrap
+- Email provider: Resend (SMTP)
 - File storage: S3-compatible object storage for tenant logos and expert photos
 - API documentation: OpenAPI produced before or alongside implementation
 
@@ -335,7 +335,7 @@ Tenants with no upcoming availability may appear but must show "no slots current
 
 Email only in MVP.
 
-Use Mailtrap.
+Use Resend SMTP.
 
 Required email templates:
 
@@ -414,7 +414,7 @@ Required groups:
 - Redis connection
 - session secret
 - CSRF secret if separate
-- Mailtrap credentials
+- Resend SMTP credentials and a verified sender address
 - Google Maps API key
 - S3-compatible storage credentials
 - rate-limit values
@@ -533,7 +533,7 @@ Acceptance:
 - platform admin can log in
 - tenant admin can log in
 - tenant admin is scoped to their tenant
-- password reset works through Mailtrap
+- password reset works through Resend
 - tenant isolation tests pass
 
 ### Phase 2: Platform Admin MVP
@@ -691,7 +691,7 @@ Build:
 
 - notification event producer
 - BullMQ notification queue
-- Mailtrap email adapter
+- Resend SMTP email adapter
 - template rendering
 - notification logs
 - retry policy: 3 retries, exponential backoff
@@ -703,7 +703,7 @@ Build:
 
 Acceptance:
 
-- booking confirmation email sends in staging/local Mailtrap
+- booking confirmation email sends in staging/local Resend configuration
 - cancellation email sends
 - tenant admin receives new booking alert
 - reminders enqueue only when appointment is more than 24 hours away
@@ -835,10 +835,9 @@ MVP is done only when:
 - slot generation tests pass
 - concurrent booking prevention tests pass
 - public booking flow passes end to end
-- Mailtrap email notification flow works
+- Resend email notification flow works
 - audit logging works for critical actions
 - notification logs are visible
 - observability hooks are active
 - rollback and backup procedures are documented
 - no explicitly out-of-scope features are implemented
-

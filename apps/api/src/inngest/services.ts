@@ -2,6 +2,7 @@ import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../modules/prisma/prisma.service';
 import { StructuredLoggerService } from '../modules/observability/structured-logger.service';
 import { NotificationService } from '../modules/notification/notification.service';
+import { SmsService } from '../modules/notification/sms.service';
 import { appConfigSchema } from '../support/config.schema';
 
 let services: {
@@ -21,7 +22,7 @@ export function getInngestServices() {
       config,
       logger,
       prisma,
-      notifications: new NotificationService(config, prisma, logger),
+      notifications: new NotificationService(config, prisma, logger, new SmsService(config, logger)),
     };
   }
   return services;
