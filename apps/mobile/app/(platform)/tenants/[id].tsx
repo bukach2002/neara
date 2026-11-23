@@ -70,8 +70,10 @@ export default function PlatformTenantDetailScreen() {
     setError(null);
     setNote(null);
     try {
-      const updated = await setTenantStatus(tenantId, action);
-      tenant.setData(updated);
+      await setTenantStatus(tenantId, action);
+      // The status endpoints return the bare tenant row; re-read the detail so
+      // counts, memberships, locations, and setup state stay populated.
+      tenant.setData(await getTenant(tenantId));
       setNote(
         action === 'activate'
           ? 'Tenant activated. It is now live to customers.'

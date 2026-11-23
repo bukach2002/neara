@@ -150,9 +150,9 @@ app/
   sign-in.tsx           unified sign-in
   register.tsx          customer registration
   forgot-password.tsx   OTP password reset
-  (customer)/           customer tabs + tenant/[slug]
-  (tenant)/             tenant tabs + bookings/[id]
-  (platform)/           platform tabs + tenants/[id], bookings/[id]
+  (customer)/           stack: (tabs) + tenant/[slug]
+  (tenant)/             stack: (tabs) + bookings/[id], setup
+  (platform)/           stack: (tabs) + tenants/[id], bookings/[id]
 src/
   api/                  typed endpoint clients
   auth/                 AuthProvider, role resolution, route guards

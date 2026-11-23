@@ -21,7 +21,9 @@ The root `.env.example` remains a local monorepo convenience template. Do not pu
 
 - `DATABASE_URL`: PostgreSQL connection string
 - `REDIS_URL`: Redis connection string for BullMQ and health checks
-- `RATE_LIMIT_REDIS_ENABLED`: set `true` to use Redis-backed distributed rate-limit counters; defaults to `false`
+- `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN`: Upstash Redis REST credentials; when both are set the rate limiter uses the shared store
+- `RATE_LIMIT_REQUIRE_SHARED_STORE`: set `true` to fail boot outside production/staging when no shared store is configured; defaults to `false`
+- `ALLOW_IN_MEMORY_RATE_LIMIT`: set `true` to boot with per-process in-memory counters even when a shared store is required; defaults to `false`. Only for single-instance deployments or temporary runs without Upstash
 
 ## Sessions and CSRF
 
@@ -61,6 +63,11 @@ All rate limits are read from environment variables with local-development defau
 - `RATE_LIMIT_ADMIN_LOGIN_PER_WINDOW`
 - `RATE_LIMIT_PASSWORD_RESET_PER_HOUR`
 - `RATE_LIMIT_WINDOW_SECONDS`
+
+In `production` and `staging` the API refuses to start without
+`UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN` unless
+`ALLOW_IN_MEMORY_RATE_LIMIT=true`. Both values must be the literal `true` or `false`;
+validation rejects `1`, `TRUE`, and similar spellings.
 
 ## Observability
 

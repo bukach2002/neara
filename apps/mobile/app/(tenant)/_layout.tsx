@@ -1,51 +1,27 @@
-import { Ionicons } from '@expo/vector-icons';
-import { Tabs } from 'expo-router';
+import { Stack } from 'expo-router';
 import { RoleGate } from '@/auth/guards';
-import { colors, typography } from '@/theme';
+import { colors } from '@/theme';
 
+export const unstable_settings = { anchor: '(tabs)' };
+
+/**
+ * Detail and setup screens are Stack routes, not hidden tabs. A hidden tab is
+ * redirected back to the initial tab by expo-router when it receives focus.
+ */
 export default function TenantLayout() {
   return (
     <RoleGate role="tenant_admin">
-      <Tabs
+      <Stack
         screenOptions={{
           headerShown: false,
-          tabBarActiveTintColor: colors.accent,
-          tabBarInactiveTintColor: colors.muted,
-          tabBarStyle: {
-            backgroundColor: colors.surface,
-            borderTopColor: colors.line,
-            height: 64,
-            paddingTop: 6,
-            paddingBottom: 8,
-          },
-          tabBarLabelStyle: { ...typography.small, fontSize: 11, fontWeight: '600' },
-          sceneStyle: { backgroundColor: colors.canvas },
+          contentStyle: { backgroundColor: colors.canvas },
+          animation: 'slide_from_right',
         }}
       >
-        <Tabs.Screen
-          name="index"
-          options={{
-            title: 'Home',
-            tabBarIcon: ({ color, size }) => <Ionicons name="grid-outline" size={size} color={typeof color === 'string' ? color : colors.muted} />,
-          }}
-        />
-        <Tabs.Screen
-          name="bookings"
-          options={{
-            title: 'Bookings',
-            tabBarIcon: ({ color, size }) => <Ionicons name="calendar-outline" size={size} color={typeof color === 'string' ? color : colors.muted} />,
-          }}
-        />
-        <Tabs.Screen
-          name="studio"
-          options={{
-            title: 'Studio',
-            tabBarIcon: ({ color, size }) => <Ionicons name="storefront-outline" size={size} color={typeof color === 'string' ? color : colors.muted} />,
-          }}
-        />
-        <Tabs.Screen name="bookings/[id]" options={{ href: null }} />
-        <Tabs.Screen name="setup" options={{ href: null }} />
-      </Tabs>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="bookings/[id]" />
+        <Stack.Screen name="setup" />
+      </Stack>
     </RoleGate>
   );
 }
